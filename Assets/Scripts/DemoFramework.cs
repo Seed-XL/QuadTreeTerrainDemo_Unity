@@ -5,6 +5,8 @@ public class DemoFramework : MonoBehaviour {
 
     public GameObject terrainGo;
 
+
+    //高度图的边长,也就是结点的个数
     public int heightSize;
 
     //是否从高度图读取高度信息
