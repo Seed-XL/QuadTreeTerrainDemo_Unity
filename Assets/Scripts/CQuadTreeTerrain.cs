@@ -5,18 +5,18 @@ namespace Assets.Scripts.QuadTree
 {
     struct stHeightData
     {
-        private ushort[,] heightData;
-        public int size;    
+        private ushort[,] mHeightData;
+        public int mSize;    
         
         public bool IsValid()
         {
-            return heightData != null; 
+            return mHeightData != null; 
         }    
         
         public void Release()
         {
-            heightData = null;
-            size = 0; 
+            mHeightData = null;
+            mSize = 0; 
         }   
 
 
@@ -24,9 +24,22 @@ namespace Assets.Scripts.QuadTree
         {
             if( mapSize > 0 )
             {
-                heightData = new ushort[mapSize,mapSize];
-                size = mapSize; 
+                mHeightData = new ushort[mapSize,mapSize];
+                mSize = mapSize; 
             }
+        }
+
+        public void SetHeightValue(ushort value , int x,int y)
+        {
+            if( IsValid() && InRange(x,y) )
+            {
+                mHeightData[x, y] = value;
+            }
+        }
+
+        private bool InRange( int x ,int y )
+        {
+            return x >= 0 && x < mSize && y >= 0 && y < mSize; 
         }
     }
 
@@ -53,7 +66,7 @@ namespace Assets.Scripts.QuadTree
         /// <param name="maxHeightValue"></param>
         /// <param name="filter"></param>
         /// <returns></returns>
-        public bool MakeTerrainFault( int size , int iter , int minHeightValue , int maxHeightValue , float filter )
+        public bool MakeTerrainFault( int size , int iter , int minHeightValue , int maxHeightValue , float fFilter )
         {
             if( mHeightData.IsValid() )
             {
@@ -100,38 +113,143 @@ namespace Assets.Scripts.QuadTree
                     }
                 }
 
-
+                FilterHeightField(ref fTempHeightData,size,fFilter);
             }
 
-            return false ; 
+            NormalizeTerrain(ref fTempHeightData, size); 
+
+            for(int z = 0; z < size; ++z)
+            {
+                for(int x = 0; x < size; ++x)
+                {
+                    SetHeightAtPoint((ushort)fTempHeightData[x, z], x, z);
+                }
+            }
+
+            return true  ; 
         }
 
 
+        void SetHeightAtPoint( ushort usHeight , int x, int z)
+        {
+            mHeightData.SetHeightValue(usHeight, x, z);
+        }
 
-        void FilterHeightField( float[,] fHeightData ,int size , float fFilter )
+
+        void NormalizeTerrain(ref float[,] fHeightData, int size)
+        {
+            float fMin = fHeightData[0, 0];
+            float fMax = fHeightData[0, 0];
+
+            for (int z = 0; z < size; ++z)
+            {
+                for (int x = 0; x < size; ++x )
+                {
+                    if( fHeightData[x,z] > fMax)
+                    {
+                        fMax = fHeightData[x, z]; 
+                    }
+
+                    if(fHeightData[x,z] < fMin)
+                    {
+                        fMin = fHeightData[x, z]; 
+                    }
+
+                }   
+            }
+
+            if(fMax <= fMin)
+            {
+                return; 
+            }
+
+            float fHeight = fMax - fMin;
+
+
+            for (int z = 0; z < size; ++z)
+            {
+                for (int x = 0; x < size; ++x)
+                {
+                    fHeightData[x, z] = ((fHeightData[x, z] - fMin) / fHeight) * 255.0f; 
+                }
+            }
+        }
+
+        void FilterHeightField( ref float[,] fHeightData ,int size , float fFilter )
         {
             //四向模糊
 
             //从左往右的模糊
             for ( int i = 0; i < size; ++i)
             {
-                //FilterHeightBand( fHeightData)    
+                FilterHeightBand(ref fHeightData,
+                    i,0,  //初始的x,y
+                    0,1,       //数组步进值
+                    size,      //数组个数
+                    fFilter);
+            }
+
+            //从右往左的模糊
+            for( int i = 0; i < size; ++i)
+            {
+                FilterHeightBand(ref fHeightData,
+                    i, size -1,
+                    0,-1,
+                    size,
+                    fFilter); 
+            }
+
+
+            //从上到下的模糊
+            for (int i = 0; i < size; ++i)
+            {
+                FilterHeightBand(ref fHeightData,
+                    0,i,
+                    1,0,
+                    size,
+                    fFilter);
+            }
+
+
+            //从下到上的模糊
+            for (int i = 0; i < size; ++i)
+            {
+                FilterHeightBand(ref fHeightData,
+                    size - 1,i ,
+                    -1,0,
+                    size,
+                    fFilter);
             }
         }
 
 
 
-        void FilterHeightBand( ref float[] fBandData , int stride , int count , float fFilter )
+        void FilterHeightBand(
+            ref float[,] fBandData ,
+            int beginX,
+            int beginY,
+            int strideX,
+            int strideY,
+            int count , 
+            float fFilter )
         {
-            float v = fBandData[0];
-            int j = stride; 
+            Debug.Log(string.Format("BeginX:{0} | BeginY:{1} | StrideX:{2} | StrideY:{2}",beginX,beginY,strideX,strideY)); 
+
+            float curValue = fBandData[beginX,beginY];
+            int jx = strideX;
+            int jy = strideY; 
             
 
             for( int i = 0; i < count - 1; ++i)
             {
-                fBandData[j] = fFilter * v + (1 - fFilter) * fBandData[j];
-                v = fBandData[j];
-                j += stride; 
+                int nextX = beginX + jx;
+                int nextY = beginY + jy; 
+
+                fBandData[nextX,nextY] = fFilter * curValue + (1 - fFilter) * fBandData[nextX,nextY];
+                curValue = fBandData[nextX, nextY];
+
+                jx += strideX;
+                jy += strideY; 
             }
         }
 

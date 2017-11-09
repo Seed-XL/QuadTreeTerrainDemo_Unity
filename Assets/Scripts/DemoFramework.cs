@@ -1,11 +1,15 @@
 ﻿using UnityEngine;
+using Assets.Scripts.QuadTree; 
 
 
 public class DemoFramework : MonoBehaviour {
 
     public GameObject terrainGo;
 
-
+    //顶点间的距离
+    public Vector3 vertexDistance; 
+    //高度值的释放
+    public float heightScale; 
     //高度图的边长,也就是结点的个数
     public int heightSize;
 
@@ -17,17 +21,24 @@ public class DemoFramework : MonoBehaviour {
 
     public bool isGenerateHeightDataRuntime;
     public int iterations;
-    public ushort minHeightValue;
-    public ushort maxHeightValue;
-    public float filter; 
-    
+    [Range(0,255)]
+    public int minHeightValue;
+    [Range(0, 255)]
+    public int  maxHeightValue;
+    public float filter;
+
+
+
+    private CQuadTreeTerrain mQuadTreeTerrain; 
    
     //1、读取高度图，
     //2、设置顶点间距离，
     //3、读取纹理
     //4、设置光照阴影
 	void Start () {
-	
+        mQuadTreeTerrain = new CQuadTreeTerrain();
+
+        mQuadTreeTerrain.MakeTerrainFault(heightSize,iterations,minHeightValue, maxHeightValue,filter);
 	}
 	
 	// Update is called once per frame
