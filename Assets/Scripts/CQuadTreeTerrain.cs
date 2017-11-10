@@ -1,8 +1,60 @@
-﻿using UnityEngine; 
+﻿using UnityEngine;
+using System.Collections.Generic;
 
 
 namespace Assets.Scripts.QuadTree
 {
+
+
+    #region 纹理数据 
+
+    public enum enTileTypes
+    {
+        lowest_tile = 0 , 
+        low_tile = 1 , 
+        hight_tile = 2 , 
+        highest_tile = 3 , 
+        max_tile = 4 ,
+    }
+
+    public class CTerrainTile
+    {
+        public int lowHeight;
+        public int optimalHeight;
+        public int highHeight;
+        public enTileTypes TileType; 
+
+        public Texture2D mTileTexture; 
+
+
+        public CTerrainTile( enTileTypes tileType, Texture2D texture )
+        {
+            lowHeight = 0;
+            optimalHeight = 0;
+            highHeight = 0;
+
+            TileType = tileType; 
+            mTileTexture = texture;
+        }
+
+        public bool IsValid()
+        {
+            return mTileTexture != null; 
+        }
+
+    }
+
+
+
+    
+
+
+
+    #endregion 
+
+
+    #region  高度度数据
+
     struct stHeightData
     {
         private ushort[,] mHeightData;
@@ -43,11 +95,97 @@ namespace Assets.Scripts.QuadTree
         }
     }
 
+    #endregion
 
     class CQuadTreeTerrain
     {
-        private stHeightData mHeightData;
 
+
+
+        #region 地形纹理操作
+
+        private List<CTerrainTile> mTerrainTiles = new List<CTerrainTile>();
+        private Texture2D mTerrainTexture;
+
+
+        public void GenerateTextureMap( uint uiSize )
+        {
+            if( mTerrainTiles.Count <= 0 )
+            {
+                return; 
+            }
+
+            mTerrainTexture = null;
+            int tHeightStride = 255 / mTerrainTiles.Count; 
+
+            //注意，这里的区域是互相重叠的
+            int lastHeight = -1; 
+            for(int i = 0; i < mTerrainTiles.Count; ++i)
+            {
+                CTerrainTile terrainTile = mTerrainTiles[i];
+                terrainTile.lowHeight = lastHeight + 1;
+                lastHeight += tHeightStride;
+
+                terrainTile.optimalHeight = lastHeight;
+                terrainTile.highHeight = (lastHeight - terrainTile.lowHeight) + lastHeight; 
+            }
+
+            mTerrainTexture = new Texture2D((int)uiSize,(int)uiSize, TextureFormat.RGB24,false);
+
+
+            float fMapRatio = (float)mHeightData.mSize / uiSize; 
+
+            for(int z = 0; z < uiSize; ++z )
+            {
+                for(int x = 0; x < uiSize; ++x)
+                {
+                    float fTotalRed = 0.0f;
+                    float fTotalGreen = 0.0f;
+                    float fTotalBlue = 0.0f; 
+
+                    for( int i = 0; i < mTerrainTiles.Count; ++i)
+                    {
+                        int uiTexX = x;
+                        int uiTexZ = z; 
+
+                        //to do
+
+                    }
+                }
+            }
+
+
+        }
+
+
+
+
+
+        public void AddTile( enTileTypes tileType , Texture2D tileTexture ) 
+        {
+            if( tileTexture != null  )
+            {
+                if( mTerrainTiles.Exists( curTile => curTile.TileType == tileType )) 
+                {
+                    CTerrainTile oldTile = mTerrainTiles.Find(curTile => curTile.TileType == tileType); 
+                    if( oldTile != null )
+                    {
+                        oldTile = new CTerrainTile(tileType, tileTexture);  
+                    }      
+                }
+                else
+                {
+                    mTerrainTiles.Add(new CTerrainTile(tileType, tileTexture)); 
+                }
+            }
+        }
+
+
+        #endregion
+
+        #region 高度图数据操作
+
+        private stHeightData mHeightData;
 
         public void UnloadHeightMap()
         {
@@ -252,6 +390,11 @@ namespace Assets.Scripts.QuadTree
                 jy += strideY; 
             }
         }
+
+
+        #endregion
+
+
 
     }
 }
