@@ -4,11 +4,13 @@ using Assets.Scripts.QuadTree;
 
 public class DemoFramework : MonoBehaviour {
 
-
     //摄像机对象
     public GameObject cameraGo ; 
     //地形对象
     public GameObject terrainGo;
+
+    //地形对象的Material
+    public Material terrainMat; 
 
     //顶点间的距离
     public Vector3 vertexDistance; 
@@ -33,6 +35,8 @@ public class DemoFramework : MonoBehaviour {
 
 
     #region 地图Tile
+    [Range(1,2048)]
+    public int terrainTextureSize = 256; 
     public Texture2D[] tiles; 
 
     #endregion
@@ -45,7 +49,8 @@ public class DemoFramework : MonoBehaviour {
     //2、设置顶点间距离，
     //3、读取纹理
     //4、设置光照阴影
-	void Start () {
+	void Start ()
+    {
         mQuadTreeTerrain = new CQuadTreeTerrain();
 
         //制造高度图
@@ -54,14 +59,27 @@ public class DemoFramework : MonoBehaviour {
         //设置对应的纹理块
         AddTile(enTileTypes.lowest_tile);
         AddTile(enTileTypes.low_tile);
-        AddTile(enTileTypes.hight_tile);
-        AddTile(enTileTypes.lowest_tile); 
-    
+        AddTile(enTileTypes.high_tile);
+        AddTile(enTileTypes.highest_tile);
 
+        mQuadTreeTerrain.GenerateTextureMap((uint)terrainTextureSize);
 
-
+       
 	}
-	
+
+
+    private void SetTerrainTexture( Texture2D texture )
+    {
+        if( terrainMat != null )
+        {
+            terrainMat.SetTexture("_MainTex", texture); 
+        }
+    }
+
+
+
+    #region 地图块操作
+
 
     void AddTile( enTileTypes tileType )
     {
@@ -74,10 +92,13 @@ public class DemoFramework : MonoBehaviour {
     }
 
 
+    #endregion
 
-	// Update is called once per frame
-	void Update () {
-	
-	}
+
+    // Update is called once per frame
+    void Update ()
+    {
+        //SetTerrainTexture(mQuadTreeTerrain.TerrainTexture);
+    }
 
 }

@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
-
+using Assets.Scripts.Utility;
+using System.IO;
+using UnityEditor; 
 
 namespace Assets.Scripts.QuadTree
 {
@@ -12,7 +14,7 @@ namespace Assets.Scripts.QuadTree
     {
         lowest_tile = 0 , 
         low_tile = 1 , 
-        hight_tile = 2 , 
+        high_tile = 2 , 
         highest_tile = 3 , 
         max_tile = 4 ,
     }
@@ -89,6 +91,16 @@ namespace Assets.Scripts.QuadTree
             }
         }
 
+        public ushort GetHeightValue( int x, int y )
+        {
+            ushort ret = 0;
+            if( IsValid() && InRange(x,y))
+            {
+                ret = mHeightData[x, y]; 
+            }
+            return ret; 
+        }
+
         private bool InRange( int x ,int y )
         {
             return x >= 0 && x < mSize && y >= 0 && y < mSize; 
@@ -106,6 +118,15 @@ namespace Assets.Scripts.QuadTree
 
         private List<CTerrainTile> mTerrainTiles = new List<CTerrainTile>();
         private Texture2D mTerrainTexture;
+        public Texture2D TerrainTexture
+        {
+            get
+            {
+                return mTerrainTexture; 
+            }
+
+        }
+
 
 
         public void GenerateTextureMap( uint uiSize )
@@ -116,7 +137,9 @@ namespace Assets.Scripts.QuadTree
             }
 
             mTerrainTexture = null;
-            int tHeightStride = 255 / mTerrainTiles.Count; 
+            int tHeightStride = 255 / ( mTerrainTiles.Count + 1 ) ;
+
+            float[] fBend = new float[mTerrainTiles.Count]; 
 
             //注意，这里的区域是互相重叠的
             int lastHeight = -1; 
@@ -130,33 +153,248 @@ namespace Assets.Scripts.QuadTree
                 terrainTile.highHeight = (lastHeight - terrainTile.lowHeight) + lastHeight; 
             }
 
-            mTerrainTexture = new Texture2D((int)uiSize,(int)uiSize, TextureFormat.RGB24,false);
+            mTerrainTexture = new Texture2D((int)uiSize,(int)uiSize, TextureFormat.RGBA32,false);
 
+            CUtility.SetTextureReadble(mTerrainTexture, true);
+          
+            float fMapRatio = (float)mHeightData.mSize / uiSize;
 
-            float fMapRatio = (float)mHeightData.mSize / uiSize; 
-
-            for(int z = 0; z < uiSize; ++z )
+            for (int z = 0; z < uiSize; ++z)
             {
-                for(int x = 0; x < uiSize; ++x)
+                for (int x = 0; x < uiSize; ++x)
                 {
-                    float fTotalRed = 0.0f;
-                    float fTotalGreen = 0.0f;
-                    float fTotalBlue = 0.0f; 
 
-                    for( int i = 0; i < mTerrainTiles.Count; ++i)
+                    Color totalColor = new Color();
+
+                    for (int i = 0; i < mTerrainTiles.Count; ++i)
                     {
+                        CTerrainTile tile = mTerrainTiles[i];
+                        if (tile.mTileTexture == null)
+                        {
+                            continue;
+                        }
+
                         int uiTexX = x;
-                        int uiTexZ = z; 
+                        int uiTexZ = z;
 
-                        //to do
+                        //CUtility.SetTextureReadble(tile.mTileTexture, true);
 
-                    }
+                        GetTexCoords(tile.mTileTexture, ref uiTexX, ref uiTexZ);
+
+                        Color color = tile.mTileTexture.GetPixel(uiTexX, uiTexZ);
+                        fBend[i] = RegionPercent(tile.TileType, Limit(InterpolateHeight(x, z, fMapRatio)));
+
+                        totalColor.r += Mathf.Min(color.r * fBend[i] + totalColor.r , 1.0f) ;
+                        totalColor.g += Mathf.Min(color.g * fBend[i] + totalColor.g , 1.0f); 
+                        totalColor.b += Mathf.Min(color.b * fBend[i] + totalColor.b , 1.0f);
+                        totalColor.a = 1.0f;
+
+                        //CUtility.SetTextureReadble(tile.mTileTexture, false);
+                    }// 
+
+                    //输出到纹理上
+                    mTerrainTexture.SetPixel(x, z,totalColor); 
+                }
+            }
+
+            //OpenGL纹理的操作
+
+            CUtility.SetTextureReadble(mTerrainTexture, false);
+
+            string filePath = string.Format("{0}/{1}", Application.dataPath, "Runtime_TerrainTexture.png"); 
+            File.WriteAllBytes(filePath,mTerrainTexture.EncodeToPNG());
+            AssetDatabase.ImportAsset(filePath, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+        } // 
+
+
+        public CTerrainTile GetTile( enTileTypes tileType )
+        {
+            return mTerrainTiles.Count > 0  ? mTerrainTiles.Find(curTile => curTile.TileType == tileType) : null; 
+        }
+
+
+        float RegionPercent( enTileTypes tileType , ushort usHeight  )
+        {
+            CTerrainTile tile = GetTile(tileType);
+            if (tile == null)
+            {
+                return 0.0f ;
+            }
+
+            if( GetTile(enTileTypes.lowest_tile) != null   )
+            {
+                if( tileType == enTileTypes.lowest_tile 
+                    && IsHeightAllLocateInTile(tileType,usHeight)) 
+                {
+                    return 1.0f; 
+                }
+            }
+
+            else if (GetTile(enTileTypes.low_tile) != null)
+            {
+                if (tileType == enTileTypes.low_tile
+                    && IsHeightAllLocateInTile(tileType, usHeight))
+                {
+                    return 1.0f;
+                }
+            }
+            else if (GetTile(enTileTypes.high_tile) != null)
+            {
+                if (tileType == enTileTypes.high_tile
+                    && IsHeightAllLocateInTile(tileType, usHeight))
+                {
+                    return 1.0f;
+                }
+            }
+            else if (GetTile(enTileTypes.highest_tile) != null)
+            {
+                if (tileType == enTileTypes.highest_tile
+                    && IsHeightAllLocateInTile(tileType, usHeight))
+                {
+                    return 1.0f;
                 }
             }
 
 
+
+            if ( usHeight < tile.lowHeight || usHeight > tile.highHeight)
+            {
+                return 0.0f; 
+            }
+          
+            if( usHeight < tile.optimalHeight )
+            {
+                float fTemp1 = usHeight - tile.lowHeight;
+                float fTemp2 = tile.optimalHeight - tile.lowHeight;
+
+                return fTemp1 / fTemp2; 
+            }
+            else if( usHeight == tile.optimalHeight )
+            {
+                return 1.0f; 
+            }
+            else if( usHeight > tile.optimalHeight  )
+            {
+                float fTemp1 = tile.highHeight - tile.optimalHeight;
+                return ((fTemp1 - (usHeight - tile.optimalHeight)) / fTemp1 ); 
+            }
+
+
+            return 0.0f; 
         }
 
+
+        private ushort GetTrueHeightAtPoint( int x ,int z )
+        {
+            return mHeightData.GetHeightValue(x, z);
+        }
+
+        //两个高度点之间的插值，这里的很有意思的
+        private ushort InterpolateHeight( int x,int z , float fHeight2TexRatio )
+        {
+            float fScaledX = x * fHeight2TexRatio;
+            float fScaledZ = z * fHeight2TexRatio;
+
+            ushort usHighX = 0;
+            ushort usHighZ = 0; 
+
+            //X的A点
+            ushort usLow = GetTrueHeightAtPoint((int)fScaledX, (int)fScaledZ);
+
+            if( ( fScaledX + 1 ) > mHeightData.mSize )
+            {
+                return usLow; 
+            }
+            else
+            {
+                //X的B点
+                usHighX = GetTrueHeightAtPoint((int)fScaledX + 1, (int)fScaledZ);    
+            }
+
+            //X的A、B两点之间插值
+            float fInterpolation = (fScaledX - (int)fScaledX);
+            float usX = (usHighX - usLow) * fInterpolation + usLow;   //插值出真正的高度值 
+
+
+            //Z轴同理
+            if ((fScaledZ + 1) > mHeightData.mSize)
+            {
+                return usLow;
+            }
+            else
+            {
+                //X的B点
+                usHighZ = GetTrueHeightAtPoint((int)fScaledX, (int)fScaledZ + 1);
+            }
+
+            fInterpolation = (fScaledZ - (int)fScaledZ);
+            float usZ = (usHighZ - usLow) * fInterpolation + usLow;   //插值出真正的高度值
+
+            return ((ushort)((usX + usZ) / 2));
+        }
+
+
+        private ushort Limit( ushort usValue  )
+        {
+            if( usValue > 255 )
+            {
+                return 255; 
+            }
+            else if( usValue < 0 )
+            {
+                return 0; 
+            }
+            return usValue; 
+        }
+
+
+        private bool IsHeightAllLocateInTile( enTileTypes tileType , ushort usHeight )
+        {
+            bool bRet = false;
+            CTerrainTile tile = GetTile(tileType);
+            if (tile != null
+                && usHeight < tile.optimalHeight)
+            {
+                bRet = true; 
+            }
+            return bRet; 
+        }
+
+
+        //因为要渲染出来的一张地形纹理，可能会比tile的宽高都要大，所以要tile其实是平铺布满地形纹理的
+        public void GetTexCoords( Texture2D texture , ref int x , ref int y)
+        {
+            int uiWidth =texture.width;
+            int uiHeight = texture.height;
+
+            int tRepeatX = -1;
+            int tRepeatY = -1;
+            int i = 0; 
+
+            while( tRepeatX == -1 )
+            {
+                i++; 
+                if( x < (uiWidth * i))
+                {
+                    tRepeatX = i - 1; 
+                }
+            }
+
+
+            i = 0; 
+            while( tRepeatY == -1 )
+            {
+                ++i; 
+                if( y < ( uiHeight * i) )
+                {
+                    tRepeatY = i - 1; 
+                }
+            }
+
+
+            x = x - (uiWidth * tRepeatX);
+            y = y - (uiHeight * tRepeatY); 
+        }
 
 
 
