@@ -153,6 +153,20 @@ namespace Assets.Scripts.QuadTree
                 terrainTile.highHeight = (lastHeight - terrainTile.lowHeight) + lastHeight; 
             }
 
+            for(int i = 0; i < mTerrainTiles.Count; ++i )
+            {
+                CTerrainTile terrainTile = mTerrainTiles[i];
+                string log = string.Format("Tile Type:{0}|lowHeight:{1}|optimalHeight:{2}|highHeight:{3}",
+                    terrainTile.TileType.ToString(),
+                    terrainTile.lowHeight,
+                    terrainTile.optimalHeight,
+                    terrainTile.highHeight
+                    ); 
+                Debug.Log(log); 
+            }
+
+
+
             mTerrainTexture = new Texture2D((int)uiSize,(int)uiSize, TextureFormat.RGBA32,false);
 
             CUtility.SetTextureReadble(mTerrainTexture, true);
@@ -181,18 +195,26 @@ namespace Assets.Scripts.QuadTree
 
                         GetTexCoords(tile.mTileTexture, ref uiTexX, ref uiTexZ);
 
+                       
+
                         Color color = tile.mTileTexture.GetPixel(uiTexX, uiTexZ);
                         fBend[i] = RegionPercent(tile.TileType, Limit(InterpolateHeight(x, z, fMapRatio)));
 
-                        totalColor.r += Mathf.Min(color.r * fBend[i] + totalColor.r , 1.0f) ;
-                        totalColor.g += Mathf.Min(color.g * fBend[i] + totalColor.g , 1.0f); 
-                        totalColor.b += Mathf.Min(color.b * fBend[i] + totalColor.b , 1.0f);
+                        totalColor.r = Mathf.Min(color.r * fBend[i] + totalColor.r, 1.0f);
+                        totalColor.g = Mathf.Min(color.g * fBend[i] + totalColor.g, 1.0f);
+                        totalColor.b = Mathf.Min(color.b * fBend[i] + totalColor.b, 1.0f);
                         totalColor.a = 1.0f;
 
                         //CUtility.SetTextureReadble(tile.mTileTexture, false);
                     }// 
 
                     //输出到纹理上
+                    if (totalColor.r == 0.0f 
+                        && totalColor.g == 0.0f 
+                        && totalColor.b == 0.0f)
+                    {
+                        Debug.Log(string.Format("x:{0}|y:{1}|h:{2}",x,z,GetTrueHeightAtPoint(x,z))); 
+                    }
                     mTerrainTexture.SetPixel(x, z,totalColor); 
                 }
             }
@@ -204,6 +226,7 @@ namespace Assets.Scripts.QuadTree
             string filePath = string.Format("{0}/{1}", Application.dataPath, "Runtime_TerrainTexture.png"); 
             File.WriteAllBytes(filePath,mTerrainTexture.EncodeToPNG());
             AssetDatabase.ImportAsset(filePath, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+            AssetDatabase.SaveAssets();
         } // 
 
 
@@ -218,10 +241,16 @@ namespace Assets.Scripts.QuadTree
             CTerrainTile tile = GetTile(tileType);
             if (tile == null)
             {
+                Debug.LogError(string.Format("No tileType : Type:{0}|Height:{1}", tileType.ToString(), usHeight));
                 return 0.0f ;
             }
 
-            if( GetTile(enTileTypes.lowest_tile) != null   )
+            CTerrainTile lowestTile = GetTile(enTileTypes.lowest_tile);
+            CTerrainTile lowTile = GetTile(enTileTypes.low_tile);
+            CTerrainTile highTile = GetTile(enTileTypes.high_tile);
+            CTerrainTile highestTile = GetTile(enTileTypes.highest_tile);
+
+            if (lowestTile != null  )
             {
                 if( tileType == enTileTypes.lowest_tile 
                     && IsHeightAllLocateInTile(tileType,usHeight)) 
@@ -230,7 +259,7 @@ namespace Assets.Scripts.QuadTree
                 }
             }
 
-            else if (GetTile(enTileTypes.low_tile) != null)
+            else if (lowTile != null)
             {
                 if (tileType == enTileTypes.low_tile
                     && IsHeightAllLocateInTile(tileType, usHeight))
@@ -238,7 +267,7 @@ namespace Assets.Scripts.QuadTree
                     return 1.0f;
                 }
             }
-            else if (GetTile(enTileTypes.high_tile) != null)
+            else if ( highTile!= null)
             {
                 if (tileType == enTileTypes.high_tile
                     && IsHeightAllLocateInTile(tileType, usHeight))
@@ -246,7 +275,7 @@ namespace Assets.Scripts.QuadTree
                     return 1.0f;
                 }
             }
-            else if (GetTile(enTileTypes.highest_tile) != null)
+            else if (highestTile != null)
             {
                 if (tileType == enTileTypes.highest_tile
                     && IsHeightAllLocateInTile(tileType, usHeight))
@@ -255,19 +284,32 @@ namespace Assets.Scripts.QuadTree
                 }
             }
 
+            //TO DO 这里的逻辑有边界问题
+            //if ( usHeight < tile.lowHeight || usHeight > tile.highHeight)
+            //{
+            //    return 0.0f; 
+            //}
 
+            ////找出最低边界保护
+            //if( usHeight < tile.optimalHeight )
+            //{
 
-            if ( usHeight < tile.lowHeight || usHeight > tile.highHeight)
-            {
-                return 0.0f; 
-            }
+            //}
           
             if( usHeight < tile.optimalHeight )
             {
                 float fTemp1 = usHeight - tile.lowHeight;
                 float fTemp2 = tile.optimalHeight - tile.lowHeight;
 
-                return fTemp1 / fTemp2; 
+                if( fTemp1/fTemp2 == 0.0f )
+                {
+                    Debug.LogError(string.Format("Lower than Optimal Height: Type:{0}|Height:{1}|fTemp1:{2}|lowHeight:{3}|optimalHeight:{4}", tileType.ToString(), usHeight,fTemp1,tile.lowHeight,tile.optimalHeight));
+                    if( tileType == enTileTypes.lowest_tile )
+                    {
+                        return Random.Range(0, 0.5f);
+                    }
+                }
+                return Mathf.Max(fTemp1 / fTemp2,0.1f); 
             }
             else if( usHeight == tile.optimalHeight )
             {
@@ -276,10 +318,20 @@ namespace Assets.Scripts.QuadTree
             else if( usHeight > tile.optimalHeight  )
             {
                 float fTemp1 = tile.highHeight - tile.optimalHeight;
-                return ((fTemp1 - (usHeight - tile.optimalHeight)) / fTemp1 ); 
+
+                if (((fTemp1 - (usHeight - tile.optimalHeight)) / fTemp1) == 0.0f)
+                {
+                    Debug.LogError(string.Format("Higher than Optimal Height: Type:{0}|Height:{1}|fTemp1:{2}|optimalHeight:{3}", tileType.ToString(), usHeight,fTemp1,tile.optimalHeight));
+                    if( tileType == enTileTypes.highest_tile )
+                    {
+                        //return Random.Range(0, 0.5f); 
+                        return 1.0f;
+                    }
+                }
+                return Mathf.Max(((fTemp1 - (usHeight - tile.optimalHeight)) / fTemp1 ),0.1f); 
             }
 
-
+            Debug.LogError(string.Format("Unknow: Type:{0}|Height:{1}", tileType.ToString(), usHeight));
             return 0.0f; 
         }
 
@@ -364,7 +416,7 @@ namespace Assets.Scripts.QuadTree
         //因为要渲染出来的一张地形纹理，可能会比tile的宽高都要大，所以要tile其实是平铺布满地形纹理的
         public void GetTexCoords( Texture2D texture , ref int x , ref int y)
         {
-            int uiWidth =texture.width;
+            int uiWidth = texture.width;
             int uiHeight = texture.height;
 
             int tRepeatX = -1;
@@ -609,7 +661,7 @@ namespace Assets.Scripts.QuadTree
             int count , 
             float fFilter )
         {
-            Debug.Log(string.Format("BeginX:{0} | BeginY:{1} | StrideX:{2} | StrideY:{2}",beginX,beginY,strideX,strideY)); 
+            //Debug.Log(string.Format("BeginX:{0} | BeginY:{1} | StrideX:{2} | StrideY:{3}",beginX,beginY,strideX,strideY)); 
 
             float curValue = fBandData[beginX,beginY];
             int jx = strideX;
