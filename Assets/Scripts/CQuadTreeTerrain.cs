@@ -501,8 +501,8 @@ namespace Assets.Scripts.QuadTree
             for( int iCurIter = 0; iCurIter < iter; ++iCurIter )
             {
                 //高度递减
-                int tHeight = maxHeightValue - ((maxHeightValue - minHeightValue ) * iCurIter) / iter;
-                //int tHeight = Random.Range(maxHeightValue - 2 , maxHeightValue);  //temp 
+                //int tHeight = maxHeightValue - ((maxHeightValue - minHeightValue ) * iCurIter) / iter;
+                int tHeight = Random.Range(minHeightValue , maxHeightValue);  //temp 
 
                 int tRandomX1 = Random.Range(0, size);
                 int tRandomZ1 = Random.Range(0, size);
@@ -681,19 +681,23 @@ namespace Assets.Scripts.QuadTree
             float fFilter )
         {
             //Debug.Log(string.Format("BeginX:{0} | BeginY:{1} | StrideX:{2} | StrideY:{3}",beginX,beginY,strideX,strideY)); 
-
+       
+            float beginValue = fBandData[beginX, beginY];
             float curValue = fBandData[beginX,beginY];
             int jx = strideX;
-            int jy = strideY; 
-            
+            int jy = strideY;
 
+            float delta = fFilter / (count - 1); 
             for( int i = 0; i < count - 1; ++i)
             {
                 int nextX = beginX + jx;
-                int nextY = beginY + jy; 
+                int nextY = beginY + jy;
 
-                fBandData[nextX,nextY] = fFilter * curValue + (1 - fFilter) * fBandData[nextX,nextY];
-                curValue = fBandData[nextX, nextY];
+                //fBandData[nextX,nextY] = fFilter * curValue + (1 - fFilter) * fBandData[nextX, nextY];
+                //curValue = fBandData[nextX, nextY];
+
+                float tFilter = fFilter - delta * ((jx - beginX + jy - beginY) * 0.5f);
+                fBandData[nextX, nextY] = tFilter * beginValue; 
 
                 jx += strideX;
                 jy += strideY; 

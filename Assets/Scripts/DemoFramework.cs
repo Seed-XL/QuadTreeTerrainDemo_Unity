@@ -29,7 +29,7 @@ public class DemoFramework : MonoBehaviour {
     public int iterations;
     [Range(0,255)]
     public int minHeightValue;
-    [Range(0, 255)]
+    [Range(0, 65536)]
     public int  maxHeightValue;
     [Range(0,0.9f)]
     public float filter;
