@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿//This code came from book 《Focus On 3D Terrain Programming》 ,thanks Trent Polack a lot
+using UnityEngine;
 using System.Collections.Generic;
 using Assets.Scripts.Utility;
 using System.IO;
