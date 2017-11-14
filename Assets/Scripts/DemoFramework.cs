@@ -31,6 +31,7 @@ public class DemoFramework : MonoBehaviour {
     public int minHeightValue;
     [Range(0, 255)]
     public int  maxHeightValue;
+    [Range(0,0.9f)]
     public float filter;
 
 
@@ -54,7 +55,7 @@ public class DemoFramework : MonoBehaviour {
         mQuadTreeTerrain = new CQuadTreeTerrain();
 
         //制造高度图
-        mQuadTreeTerrain.MakeTerrainFault(heightSize,iterations,minHeightValue, maxHeightValue,filter);
+        mQuadTreeTerrain.MakeTerrainFault(heightSize,iterations,(ushort)minHeightValue, (ushort)maxHeightValue,filter);
 
         //设置对应的纹理块
         AddTile(enTileTypes.lowest_tile);
@@ -62,7 +63,7 @@ public class DemoFramework : MonoBehaviour {
         AddTile(enTileTypes.high_tile);
         AddTile(enTileTypes.highest_tile);
 
-        mQuadTreeTerrain.GenerateTextureMap((uint)terrainTextureSize);
+        mQuadTreeTerrain.GenerateTextureMap((uint)terrainTextureSize,(ushort)maxHeightValue,(ushort)minHeightValue);
 
        
 	}

@@ -129,7 +129,7 @@ namespace Assets.Scripts.QuadTree
 
 
 
-        public void GenerateTextureMap( uint uiSize )
+        public void GenerateTextureMap( uint uiSize ,ushort maxHeight , ushort minHeight )
         {
             if( mTerrainTiles.Count <= 0 )
             {
@@ -137,7 +137,7 @@ namespace Assets.Scripts.QuadTree
             }
 
             mTerrainTexture = null;
-            int tHeightStride = 255 / ( mTerrainTiles.Count + 1 ) ;
+            int tHeightStride = maxHeight / ( mTerrainTiles.Count + 1 ) ;
 
             float[] fBend = new float[mTerrainTiles.Count]; 
 
@@ -146,7 +146,8 @@ namespace Assets.Scripts.QuadTree
             for(int i = 0; i < mTerrainTiles.Count; ++i)
             {
                 CTerrainTile terrainTile = mTerrainTiles[i];
-                terrainTile.lowHeight = lastHeight + 1;
+                lastHeight += 1;
+                terrainTile.lowHeight = lastHeight ;
                 lastHeight += tHeightStride;
 
                 terrainTile.optimalHeight = lastHeight;
@@ -198,7 +199,7 @@ namespace Assets.Scripts.QuadTree
                        
 
                         Color color = tile.mTileTexture.GetPixel(uiTexX, uiTexZ);
-                        fBend[i] = RegionPercent(tile.TileType, Limit(InterpolateHeight(x, z, fMapRatio)));
+                        fBend[i] = RegionPercent(tile.TileType, Limit(InterpolateHeight(x, z, fMapRatio),maxHeight,minHeight));
 
                         totalColor.r = Mathf.Min(color.r * fBend[i] + totalColor.r, 1.0f);
                         totalColor.g = Mathf.Min(color.g * fBend[i] + totalColor.g, 1.0f);
@@ -213,8 +214,11 @@ namespace Assets.Scripts.QuadTree
                         && totalColor.g == 0.0f 
                         && totalColor.b == 0.0f)
                     {
-                        Debug.Log(string.Format("x:{0}|y:{1}|h:{2}",x,z,GetTrueHeightAtPoint(x,z))); 
+                        ushort xHeight = (ushort)(x * fMapRatio);
+                        ushort zHeight = (ushort)(z * fMapRatio); 
+                        Debug.Log(string.Format("Color is Black | uiX:{0}|uiZ:{1}|hX:{2}|hZ:{3}|h:{4}",x,z,xHeight,zHeight,GetTrueHeightAtPoint(xHeight,zHeight))); 
                     }
+
                     mTerrainTexture.SetPixel(x, z,totalColor); 
                 }
             }
@@ -250,6 +254,7 @@ namespace Assets.Scripts.QuadTree
             CTerrainTile highTile = GetTile(enTileTypes.high_tile);
             CTerrainTile highestTile = GetTile(enTileTypes.highest_tile);
 
+            //如果最低的块已经加载了，且落在它的low Height的块里面
             if (lowestTile != null  )
             {
                 if( tileType == enTileTypes.lowest_tile 
@@ -284,30 +289,22 @@ namespace Assets.Scripts.QuadTree
                 }
             }
 
-            //TO DO 这里的逻辑有边界问题
-            //if ( usHeight < tile.lowHeight || usHeight > tile.highHeight)
-            //{
-            //    return 0.0f; 
-            //}
+            //以[,)左闭右开吧
+            if (usHeight < tile.lowHeight || usHeight >= tile.highHeight)
+            {
+                return 0.0f;
+            }
 
-            ////找出最低边界保护
-            //if( usHeight < tile.optimalHeight )
-            //{
 
-            //}
-          
-            if( usHeight < tile.optimalHeight )
+            if ( usHeight < tile.optimalHeight )
             {
                 float fTemp1 = usHeight - tile.lowHeight;
                 float fTemp2 = tile.optimalHeight - tile.lowHeight;
 
-                if( fTemp1/fTemp2 == 0.0f )
+                if( fTemp1 == 0.0f )
                 {
                     Debug.LogError(string.Format("Lower than Optimal Height: Type:{0}|Height:{1}|fTemp1:{2}|lowHeight:{3}|optimalHeight:{4}", tileType.ToString(), usHeight,fTemp1,tile.lowHeight,tile.optimalHeight));
-                    if( tileType == enTileTypes.lowest_tile )
-                    {
-                        return Random.Range(0, 0.5f);
-                    }
+                    return 1.0f;
                 }
                 return Mathf.Max(fTemp1 / fTemp2,0.1f); 
             }
@@ -322,11 +319,7 @@ namespace Assets.Scripts.QuadTree
                 if (((fTemp1 - (usHeight - tile.optimalHeight)) / fTemp1) == 0.0f)
                 {
                     Debug.LogError(string.Format("Higher than Optimal Height: Type:{0}|Height:{1}|fTemp1:{2}|optimalHeight:{3}", tileType.ToString(), usHeight,fTemp1,tile.optimalHeight));
-                    if( tileType == enTileTypes.highest_tile )
-                    {
-                        //return Random.Range(0, 0.5f); 
-                        return 1.0f;
-                    }
+                    return 1.0f;
                 }
                 return Mathf.Max(((fTemp1 - (usHeight - tile.optimalHeight)) / fTemp1 ),0.1f); 
             }
@@ -386,15 +379,15 @@ namespace Assets.Scripts.QuadTree
         }
 
 
-        private ushort Limit( ushort usValue  )
+        private ushort Limit( ushort usValue , ushort maxHeight , ushort minHeight )
         {
-            if( usValue > 255 )
+            if( usValue > maxHeight )
             {
-                return 255; 
+                return maxHeight ; 
             }
-            else if( usValue < 0 )
+            else if( usValue < minHeight )
             {
-                return 0; 
+                return minHeight; 
             }
             return usValue; 
         }
@@ -405,7 +398,7 @@ namespace Assets.Scripts.QuadTree
             bool bRet = false;
             CTerrainTile tile = GetTile(tileType);
             if (tile != null
-                && usHeight < tile.optimalHeight)
+                && usHeight <= tile.optimalHeight)
             {
                 bRet = true; 
             }
@@ -494,7 +487,7 @@ namespace Assets.Scripts.QuadTree
         /// <param name="maxHeightValue"></param>
         /// <param name="filter"></param>
         /// <returns></returns>
-        public bool MakeTerrainFault( int size , int iter , int minHeightValue , int maxHeightValue , float fFilter )
+        public bool MakeTerrainFault( int size , int iter , ushort minHeightValue , ushort maxHeightValue , float fFilter )
         {
             if( mHeightData.IsValid() )
             {
@@ -508,7 +501,8 @@ namespace Assets.Scripts.QuadTree
             for( int iCurIter = 0; iCurIter < iter; ++iCurIter )
             {
                 //高度递减
-                int tHeight = maxHeightValue - ((maxHeightValue - minHeightValue) * iCurIter) / iter;
+                int tHeight = maxHeightValue - ((maxHeightValue - minHeightValue ) * iCurIter) / iter;
+                //int tHeight = Random.Range(maxHeightValue - 2 , maxHeightValue);  //temp 
 
                 int tRandomX1 = Random.Range(0, size);
                 int tRandomZ1 = Random.Range(0, size);
@@ -542,9 +536,10 @@ namespace Assets.Scripts.QuadTree
                 }
 
                 FilterHeightField(ref fTempHeightData,size,fFilter);
+
             }
 
-            NormalizeTerrain(ref fTempHeightData, size); 
+            NormalizeTerrain(ref fTempHeightData, size , maxHeightValue ); 
 
             for(int z = 0; z < size; ++z)
             {
@@ -564,7 +559,7 @@ namespace Assets.Scripts.QuadTree
         }
 
 
-        void NormalizeTerrain(ref float[,] fHeightData, int size)
+        void NormalizeTerrain(ref float[,] fHeightData, int size , ushort maxHeight )
         {
             float fMin = fHeightData[0, 0];
             float fMax = fHeightData[0, 0];
@@ -586,21 +581,45 @@ namespace Assets.Scripts.QuadTree
                 }   
             }
 
+            Debug.Log(string.Format("Before Normailzed MaxHeight:{0}|MinHeight:{1}",fMax,fMin)); 
+
             if(fMax <= fMin)
             {
                 return; 
             }
 
             float fHeight = fMax - fMin;
-
-
             for (int z = 0; z < size; ++z)
             {
                 for (int x = 0; x < size; ++x)
                 {
-                    fHeightData[x, z] = ((fHeightData[x, z] - fMin) / fHeight) * 255.0f; 
+                    fHeightData[x, z] = ((fHeightData[x, z] - fMin) / fHeight) * maxHeight  ;
                 }
             }
+
+
+            ///////////////打LOG用
+            fMax = fHeightData[0, 0];
+            fMin = fHeightData[0, 0];
+            for (int z = 0; z < size; ++z)
+            {
+                for (int x = 0; x < size; ++x)
+                {
+                    if (fHeightData[x, z] > fMax)
+                    {
+                        fMax = fHeightData[x, z];
+                    }
+
+                    if (fHeightData[x, z] < fMin)
+                    {
+                        fMin = fHeightData[x, z];
+                    }
+                }
+            }
+
+            Debug.Log(string.Format("After Normailzed MaxHeight:{0}|MinHeight:{1}", fMax, fMin));
+
+            ///////////////////////////
         }
 
         void FilterHeightField( ref float[,] fHeightData ,int size , float fFilter )
