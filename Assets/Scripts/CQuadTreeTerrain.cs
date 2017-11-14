@@ -137,7 +137,7 @@ namespace Assets.Scripts.QuadTree
             }
 
             mTerrainTexture = null;
-            int tHeightStride = maxHeight / ( mTerrainTiles.Count + 1 ) ;
+            int tHeightStride  = maxHeight / mTerrainTiles.Count ;
 
             float[] fBend = new float[mTerrainTiles.Count]; 
 
@@ -146,8 +146,8 @@ namespace Assets.Scripts.QuadTree
             for(int i = 0; i < mTerrainTiles.Count; ++i)
             {
                 CTerrainTile terrainTile = mTerrainTiles[i];
-                lastHeight += 1;
-                terrainTile.lowHeight = lastHeight ;
+                //lastHeight += 1;
+                terrainTile.lowHeight = lastHeight + 1 ;
                 lastHeight += tHeightStride;
 
                 terrainTile.optimalHeight = lastHeight;
@@ -290,7 +290,7 @@ namespace Assets.Scripts.QuadTree
             }
 
             //以[,)左闭右开吧
-            if (usHeight < tile.lowHeight || usHeight >= tile.highHeight)
+            if (usHeight < tile.lowHeight || usHeight > tile.highHeight)
             {
                 return 0.0f;
             }
@@ -301,12 +301,13 @@ namespace Assets.Scripts.QuadTree
                 float fTemp1 = usHeight - tile.lowHeight;
                 float fTemp2 = tile.optimalHeight - tile.lowHeight;
 
-                if( fTemp1 == 0.0f )
-                {
-                    Debug.LogError(string.Format("Lower than Optimal Height: Type:{0}|Height:{1}|fTemp1:{2}|lowHeight:{3}|optimalHeight:{4}", tileType.ToString(), usHeight,fTemp1,tile.lowHeight,tile.optimalHeight));
-                    return 1.0f;
-                }
-                return Mathf.Max(fTemp1 / fTemp2,0.1f); 
+                //这段会产生小斑点，因为有些值可能会比较特殊
+                //if (fTemp1 == 0.0f)
+                //{
+                //    Debug.LogError(string.Format("Lower than Optimal Height: Type:{0}|Height:{1}|fTemp1:{2}|lowHeight:{3}|optimalHeight:{4}", tileType.ToString(), usHeight, fTemp1, tile.lowHeight, tile.optimalHeight));
+                //    return 1.0f;
+                //}
+                return fTemp1 / fTemp2; 
             }
             else if( usHeight == tile.optimalHeight )
             {
@@ -316,12 +317,13 @@ namespace Assets.Scripts.QuadTree
             {
                 float fTemp1 = tile.highHeight - tile.optimalHeight;
 
-                if (((fTemp1 - (usHeight - tile.optimalHeight)) / fTemp1) == 0.0f)
-                {
-                    Debug.LogError(string.Format("Higher than Optimal Height: Type:{0}|Height:{1}|fTemp1:{2}|optimalHeight:{3}", tileType.ToString(), usHeight,fTemp1,tile.optimalHeight));
-                    return 1.0f;
-                }
-                return Mathf.Max(((fTemp1 - (usHeight - tile.optimalHeight)) / fTemp1 ),0.1f); 
+                //这段会产生小斑点，因为有些值可能会比较特殊
+                //if (((fTemp1 - (usHeight - tile.optimalHeight)) / fTemp1) == 0.0f)
+                //{
+                //    Debug.LogError(string.Format("Higher than Optimal Height: Type:{0}|Height:{1}|fTemp1:{2}|optimalHeight:{3}", tileType.ToString(), usHeight, fTemp1, tile.optimalHeight));
+                //    return 1.0f;
+                //}
+                return ((fTemp1 - (usHeight - tile.optimalHeight)) / fTemp1);
             }
 
             Debug.LogError(string.Format("Unknow: Type:{0}|Height:{1}", tileType.ToString(), usHeight));
@@ -501,8 +503,8 @@ namespace Assets.Scripts.QuadTree
             for( int iCurIter = 0; iCurIter < iter; ++iCurIter )
             {
                 //高度递减
-                //int tHeight = maxHeightValue - ((maxHeightValue - minHeightValue ) * iCurIter) / iter;
-                int tHeight = Random.Range(minHeightValue , maxHeightValue);  //temp 
+                int tHeight = maxHeightValue - ((maxHeightValue - minHeightValue ) * iCurIter) / iter;
+                //int tHeight = Random.Range(minHeightValue , maxHeightValue);  //temp 
 
                 int tRandomX1 = Random.Range(0, size);
                 int tRandomZ1 = Random.Range(0, size);
@@ -530,7 +532,7 @@ namespace Assets.Scripts.QuadTree
                         
                         if( (tDirX2 * tDirZ1 - tDirX1 * tDirZ2) > 0  )
                         {
-                            fTempHeightData[x, z] = tHeight; 
+                            fTempHeightData[x, z] += tHeight; //!!!!!自加符号有问题！！！！
                         }       
                     }
                 }
@@ -682,22 +684,22 @@ namespace Assets.Scripts.QuadTree
         {
             //Debug.Log(string.Format("BeginX:{0} | BeginY:{1} | StrideX:{2} | StrideY:{3}",beginX,beginY,strideX,strideY)); 
        
-            float beginValue = fBandData[beginX, beginY];
+            //float beginValue = fBandData[beginX, beginY];
             float curValue = fBandData[beginX,beginY];
             int jx = strideX;
             int jy = strideY;
 
-            float delta = fFilter / (count - 1); 
+            //float delta = fFilter / (count - 1);
             for( int i = 0; i < count - 1; ++i)
             {
                 int nextX = beginX + jx;
                 int nextY = beginY + jy;
 
-                //fBandData[nextX,nextY] = fFilter * curValue + (1 - fFilter) * fBandData[nextX, nextY];
-                //curValue = fBandData[nextX, nextY];
+                fBandData[nextX, nextY] = fFilter * curValue + (1 - fFilter) * fBandData[nextX, nextY];
+                curValue = fBandData[nextX, nextY];
 
-                float tFilter = fFilter - delta * ((jx - beginX + jy - beginY) * 0.5f);
-                fBandData[nextX, nextY] = tFilter * beginValue; 
+                //float tFilter = fFilter - delta * ((jx - beginX + jy - beginY) * 0.5f);
+                //fBandData[nextX, nextY] = tFilter * beginValue;
 
                 jx += strideX;
                 jy += strideY; 
