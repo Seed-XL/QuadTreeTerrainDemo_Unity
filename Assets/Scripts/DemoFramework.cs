@@ -114,7 +114,8 @@ public class DemoFramework : MonoBehaviour {
     {
         if( mQuadTreeTerrain != null )
         {
-            mQuadTreeTerrain.Render(terrainGo);      
+            RenderInWireframe wireframeCtrl = cameraGo.GetComponent<RenderInWireframe>(); 
+            mQuadTreeTerrain.Render(terrainGo, wireframeCtrl != null ? wireframeCtrl.wireframeMode : false );      
         }     
     }
 

@@ -148,7 +148,7 @@ namespace Assets.Scripts.QuadTree
 
 
         #region  将模型渲染上去
-        public void Render( GameObject terrainGo )
+        public void Render( GameObject terrainGo ,bool isWirefame = false  )
         {
             if( null == terrainGo)
             {
@@ -175,7 +175,7 @@ namespace Assets.Scripts.QuadTree
             }
 
             int vertexCnt = mHeightData.mSize * mHeightData.mSize;
-            Vector2[] uv = new Vector2[vertexCnt]; 
+            Vector2[] uv = isWirefame ? null : new Vector2[vertexCnt]; 
             Vector3[] vertices = new Vector3[vertexCnt];
             for( int z = 0; z < mHeightData.mSize ; ++z)
             {
@@ -184,7 +184,11 @@ namespace Assets.Scripts.QuadTree
                     float y = 0; // mHeightData.GetRawHeightValue(x, z);
                     int vertexIdx = z * mHeightData.mSize + x; 
                     vertices[vertexIdx] = new Vector3(x, y, z);
-                    uv[vertexIdx] = new Vector2( (float)x / (float)mHeightData.mSize, (float)z / (float)mHeightData.mSize); 
+
+                    if( !isWirefame )
+                    {
+                        uv[vertexIdx] = new Vector2((float)x / (float)mHeightData.mSize, (float)z / (float)mHeightData.mSize);
+                    }
                 }
             }
             mesh.vertices = vertices;
