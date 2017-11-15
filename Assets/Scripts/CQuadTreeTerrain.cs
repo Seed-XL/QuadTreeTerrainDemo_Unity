@@ -148,7 +148,7 @@ namespace Assets.Scripts.QuadTree
 
 
         #region  将模型渲染上去
-        public void Render( GameObject terrainGo ,bool isWirefame = false  )
+        public void Render( GameObject terrainGo,Vector3 vertexScale ,bool isWirefame = false  )
         {
             if( null == terrainGo)
             {
@@ -181,9 +181,9 @@ namespace Assets.Scripts.QuadTree
             {
                 for(int x = 0; x < mHeightData.mSize ; ++x)
                 {
-                    float y = 0; // mHeightData.GetRawHeightValue(x, z);
+                    float y = mHeightData.GetRawHeightValue(x, z);
                     int vertexIdx = z * mHeightData.mSize + x; 
-                    vertices[vertexIdx] = new Vector3(x, y, z);
+                    vertices[vertexIdx] = new Vector3(x*vertexScale.x, y * vertexScale.y, z * vertexScale.z);
 
                     if( !isWirefame )
                     {

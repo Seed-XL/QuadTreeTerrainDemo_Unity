@@ -10,10 +10,8 @@ public class DemoFramework : MonoBehaviour {
     public GameObject terrainGo;
 
     //顶点间的距离
-    public Vector3 vertexDistance; 
-    //高度值的释放
-    [Range(1,100)]
-    public float heightScale; 
+    public Vector3 vertexScale; 
+
     //高度图的边长,也就是结点的个数
     public int heightSize;
 
@@ -54,7 +52,7 @@ public class DemoFramework : MonoBehaviour {
 
         //制造高度图
         mQuadTreeTerrain.MakeTerrainFault(heightSize,iterations,(ushort)minHeightValue, (ushort)maxHeightValue,filter);
-        mQuadTreeTerrain.SetHeightScale(heightScale); 
+        mQuadTreeTerrain.SetHeightScale(vertexScale.y); 
 
         //设置对应的纹理块
         AddTile(enTileTypes.lowest_tile);
@@ -115,7 +113,7 @@ public class DemoFramework : MonoBehaviour {
         if( mQuadTreeTerrain != null )
         {
             RenderInWireframe wireframeCtrl = cameraGo.GetComponent<RenderInWireframe>(); 
-            mQuadTreeTerrain.Render(terrainGo, wireframeCtrl != null ? wireframeCtrl.wireframeMode : false );      
+            mQuadTreeTerrain.Render(terrainGo, vertexScale, wireframeCtrl != null ? wireframeCtrl.wireframeMode : false );      
         }     
     }
 
