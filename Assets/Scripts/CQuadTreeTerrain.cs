@@ -3,7 +3,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using Assets.Scripts.Utility;
 using System.IO;
-using UnityEditor; 
+using UnityEditor;
 
 namespace Assets.Scripts.QuadTree
 {
@@ -61,7 +61,8 @@ namespace Assets.Scripts.QuadTree
     struct stHeightData
     {
         private ushort[,] mHeightData;
-        public int mSize;    
+        public int mSize;
+        public float mHeightScale;   
         
         public bool IsValid()
         {
@@ -92,7 +93,7 @@ namespace Assets.Scripts.QuadTree
             }
         }
 
-        public ushort GetHeightValue( int x, int y )
+        public ushort GetRawHeightValue( int x, int y )
         {
             ushort ret = 0;
             if( IsValid() && InRange(x,y))
@@ -102,6 +103,12 @@ namespace Assets.Scripts.QuadTree
             return ret; 
         }
 
+        public ushort GetScaleHeightValue(int x , int y )
+        {
+            return (ushort)(mHeightScale * GetScaleHeightValue(x, y)); 
+        }
+
+
         private bool InRange( int x ,int y )
         {
             return x >= 0 && x < mSize && y >= 0 && y < mSize; 
@@ -110,8 +117,106 @@ namespace Assets.Scripts.QuadTree
 
     #endregion
 
+
+    #region 结点定义 
+
+    /*
+
+
+
+    */
+    class CQuadTreeNode
+    {
+        public CQuadTreeNode mUpperLeftNode;
+        public CQuadTreeNode mUpperRightNode;
+        public CQuadTreeNode mBottomRightNode;
+        public CQuadTreeNode mBottomLetfNode;
+
+        public CQuadTreeNode mParentNode;
+        
+
+    }
+
+
+
+    #endregion
+
+
+
     class CQuadTreeTerrain
     {
+
+
+        #region  将模型渲染上去
+        public void Render( GameObject terrainGo )
+        {
+            if( null == terrainGo)
+            {
+                Debug.LogError("Terrain GameObject is Null"); 
+                return; 
+            }
+
+            MeshFilter meshFilter = terrainGo.GetComponent<MeshFilter>(); 
+            if( null == meshFilter )
+            {
+                Debug.LogError("Terrain without Comp [MeshFilter]");
+                return; 
+            }
+
+            Mesh mesh = null; 
+            if ( meshFilter.mesh == null )
+            {
+                mesh = new Mesh(); 
+                meshFilter.mesh = mesh;
+            }
+            else
+            {
+                mesh = meshFilter.mesh; 
+            }
+
+            int vertexCnt = mHeightData.mSize * mHeightData.mSize;
+            Vector2[] uv = new Vector2[vertexCnt]; 
+            Vector3[] vertices = new Vector3[vertexCnt];
+            for( int z = 0; z < mHeightData.mSize ; ++z)
+            {
+                for(int x = 0; x < mHeightData.mSize ; ++x)
+                {
+                    float y = 0; // mHeightData.GetRawHeightValue(x, z);
+                    int vertexIdx = z * mHeightData.mSize + x; 
+                    vertices[vertexIdx] = new Vector3(x, y, z);
+                    uv[vertexIdx] = new Vector2( (float)x / (float)mHeightData.mSize, (float)z / (float)mHeightData.mSize); 
+                }
+            }
+            mesh.vertices = vertices;
+            mesh.uv = uv; 
+
+            int nIdx = 0; 
+            int[] triangles = new int[(mHeightData.mSize-1)*(mHeightData.mSize-1)*6];  //一个正方形对应两个三角形，6个顶点
+            for (int z = 0; z < mHeightData.mSize -1 ; ++z)
+            {
+                for (int x = 0; x < mHeightData.mSize - 1 ; ++x)
+                {
+                    int bottomLeftIdx = z * mHeightData.mSize + x;
+                    int topLeftIdx = (z + 1) * mHeightData.mSize + x;
+                    int topRightIdx = topLeftIdx + 1;
+                    int bottomRightIdx = bottomLeftIdx + 1;
+
+                    triangles[nIdx++] = bottomLeftIdx;
+                    triangles[nIdx++] = topLeftIdx;
+                    triangles[nIdx++] = bottomRightIdx;
+                    triangles[nIdx++] = topLeftIdx;
+                    triangles[nIdx++] = topRightIdx;
+                    triangles[nIdx++] = bottomRightIdx;  
+                }
+            }
+
+            mesh.triangles = triangles; 
+
+        }
+
+
+
+        #endregion
 
 
 
@@ -225,13 +330,13 @@ namespace Assets.Scripts.QuadTree
             }
 
             //OpenGL纹理的操作
-
+            mTerrainTexture.Apply(); 
             CUtility.SetTextureReadble(mTerrainTexture, false);
 
-            string filePath = string.Format("{0}/{1}", Application.dataPath, "Runtime_TerrainTexture.png"); 
-            File.WriteAllBytes(filePath,mTerrainTexture.EncodeToPNG());
-            AssetDatabase.ImportAsset(filePath, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
-            AssetDatabase.SaveAssets();
+            //string filePath = string.Format("{0}/{1}", Application.dataPath, "Runtime_TerrainTexture.png"); 
+            //File.WriteAllBytes(filePath,mTerrainTexture.EncodeToPNG());
+            //AssetDatabase.ImportAsset(filePath, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+            //AssetDatabase.SaveAssets();
         } // 
 
 
@@ -334,7 +439,7 @@ namespace Assets.Scripts.QuadTree
 
         private ushort GetTrueHeightAtPoint( int x ,int z )
         {
-            return mHeightData.GetHeightValue(x, z);
+            return mHeightData.GetRawHeightValue(x, z);
         }
 
         //两个高度点之间的插值，这里的很有意思的
@@ -380,7 +485,6 @@ namespace Assets.Scripts.QuadTree
 
             return ((ushort)((usX + usZ) / 2));
         }
-
 
         private ushort Limit( ushort usValue , ushort maxHeight , ushort minHeight )
         {
@@ -479,6 +583,13 @@ namespace Assets.Scripts.QuadTree
 
             Debug.Log("Height Map is Unload!"); 
         }
+
+
+        public void SetHeightScale( float heightScale )
+        {
+            mHeightData.mHeightScale = heightScale; 
+        }
+
 
 
         /// <summary>

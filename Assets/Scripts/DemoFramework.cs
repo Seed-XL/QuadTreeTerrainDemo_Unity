@@ -9,12 +9,10 @@ public class DemoFramework : MonoBehaviour {
     //地形对象
     public GameObject terrainGo;
 
-    //地形对象的Material
-    public Material terrainMat; 
-
     //顶点间的距离
     public Vector3 vertexDistance; 
     //高度值的释放
+    [Range(1,100)]
     public float heightScale; 
     //高度图的边长,也就是结点的个数
     public int heightSize;
@@ -56,27 +54,42 @@ public class DemoFramework : MonoBehaviour {
 
         //制造高度图
         mQuadTreeTerrain.MakeTerrainFault(heightSize,iterations,(ushort)minHeightValue, (ushort)maxHeightValue,filter);
+        mQuadTreeTerrain.SetHeightScale(heightScale); 
 
         //设置对应的纹理块
         AddTile(enTileTypes.lowest_tile);
         AddTile(enTileTypes.low_tile);
         AddTile(enTileTypes.high_tile);
         AddTile(enTileTypes.highest_tile);
-
         mQuadTreeTerrain.GenerateTextureMap((uint)terrainTextureSize,(ushort)maxHeightValue,(ushort)minHeightValue);
-
-       
-	}
+        ApplyTerrainTexture(mQuadTreeTerrain.TerrainTexture);
 
 
-    private void SetTerrainTexture( Texture2D texture )
+    }
+
+
+    private void ApplyTerrainTexture(  Texture2D texture )
     {
-        if( terrainMat != null )
+        if( terrainGo != null )
         {
-            terrainMat.SetTexture("_MainTex", texture); 
+            MeshRenderer meshRender = terrainGo.GetComponent<MeshRenderer>(); 
+            if( meshRender != null )
+            {
+                Shader terrainShader = Shader.Find("Terrain/QuadTree/TerrainRender");
+                if (terrainShader != null)
+                {
+                    meshRender.material = new Material(terrainShader);
+                    if (meshRender.material != null)
+                    {
+                        meshRender.material.SetTexture("_MainTex",texture) ;
+                    }
+                }
+            }
         }
     }
 
+
+ 
 
 
     #region 地图块操作
@@ -99,7 +112,10 @@ public class DemoFramework : MonoBehaviour {
     // Update is called once per frame
     void Update ()
     {
-        //SetTerrainTexture(mQuadTreeTerrain.TerrainTexture);
+        if( mQuadTreeTerrain != null )
+        {
+            mQuadTreeTerrain.Render(terrainGo);      
+        }     
     }
 
 }
