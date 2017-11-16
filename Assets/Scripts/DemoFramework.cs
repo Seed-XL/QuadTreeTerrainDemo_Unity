@@ -32,7 +32,9 @@ public class DemoFramework : MonoBehaviour {
 
 
     #region 地图Tile
-    [Range(1,2048)]
+    public Texture2D detailTexture;
+
+    [Range(1, 2048)]
     public int terrainTextureSize = 256; 
     public Texture2D[] tiles; 
 
@@ -80,6 +82,10 @@ public class DemoFramework : MonoBehaviour {
                     if (meshRender.material != null)
                     {
                         meshRender.material.SetTexture("_MainTex",texture) ;
+                        if( detailTexture != null )
+                        {
+                            meshRender.material.SetTexture("_DetailTex", detailTexture);
+                        }
                     }
                 }
             }
@@ -110,11 +116,15 @@ public class DemoFramework : MonoBehaviour {
     // Update is called once per frame
     void Update ()
     {
+        GL.wireframe = true;
+
         if( mQuadTreeTerrain != null )
         {
             RenderInWireframe wireframeCtrl = cameraGo.GetComponent<RenderInWireframe>(); 
             mQuadTreeTerrain.Render(terrainGo, vertexScale, wireframeCtrl != null ? wireframeCtrl.wireframeMode : false );      
-        }     
+        }
+
+        GL.wireframe = false;   
     }
 
 }

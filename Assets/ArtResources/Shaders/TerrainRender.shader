@@ -4,14 +4,17 @@
     {
         _Color("Color Tint",Color) = (1,1,1,1)
 		_MainTex ("Main Tex", 2D) = "white" {}
-        _Specular("Specular",Color) = (1,1,1,1)
-        _Gloss ("Gloss",Range(8.0,256)) = 20 
+        _DetailTex("Detail Tex",2D) = "white"{}
+        _BlendFactor ("BlendFactor",Range(0.01,1)) = 0.1 
 	}
 	SubShader 
     {
     
 		Tags { "LightMode"="ForwardBase" }
 
+        Cull Off
+        
+        
 		
         Pass
         {
@@ -24,8 +27,10 @@
             fixed4 _Color ; 
             sampler2D _MainTex ; 
             float4 _MainTex_ST ; 
-            fixed4 _Specular ; 
-            float _Gloss ; 
+            sampler2D _DetailTex ;
+            float4 _DetailTex_ST ; 
+            
+            float _BlendFactor ; 
             
             struct a2v
             {
@@ -55,22 +60,12 @@
             
             fixed4 frag(v2f i ): SV_Target
             {
-                //fixed3 worldNormal = normalize(i.worldNormal) ; 
-                //fixed3 worldLightDir = normalize(_WorldSpaceLightPos0.xyz); 
                 
-                //fixed3 albdeo = tex2D(_MainTex,i.uv).rgb * _Color.rgb ; 
+                fixed3 color1 = tex2D(_MainTex,i.uv).rgb ;
+                fixed3 color2 = tex2D(_DetailTex,i.uv).rgb ; 
+                fixed3 finalColor = lerp(color1,color2,_BlendFactor) ;
                 
-                //fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz * albdeo ; 
-                //fixed3 diffuse = _LightColor0.rgb * albdeo * max(0,dot(worldNormal,worldLightDir)) ; 
-                
-                //fixed3 viewDir = normalize(_WorldSpaceCameraPos.xyz - i.worldPos.xyz) ; 
-                //fixed3 halfDir = normalize(worldLightDir + viewDir); 
-                //fixed3 specular = _LightColor0.rgb * _Specular.rgb * pow(max(0,dot(worldNormal,halfDir)),_Gloss) ; 
-                
-                //return fixed4(ambient + diffuse + specular,1.0) ; 
-
-                fixed3 albdeo =  tex2D(_MainTex,i.uv).rgb ;
-                return fixed4(albdeo,1.0) ; 
+                return fixed4(finalColor,1.0) ; 
                
             }
             
