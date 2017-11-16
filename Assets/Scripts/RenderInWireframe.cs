@@ -7,10 +7,10 @@ public class RenderInWireframe : MonoBehaviour
 
     void OnPreRender()
     {
-        GL.wireframe = true;
+        GL.wireframe = wireframeMode;
     }
     void OnPostRender()
     {
-        GL.wireframe = false;
+        GL.wireframe = wireframeMode;
     }
 }
