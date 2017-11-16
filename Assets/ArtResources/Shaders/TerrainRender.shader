@@ -5,7 +5,6 @@
         _Color("Color Tint",Color) = (1,1,1,1)
 		_MainTex ("Main Tex", 2D) = "white" {}
         _DetailTex("Detail Tex",2D) = "white"{}
-        _BlendFactor ("BlendFactor",Range(0.01,1)) = 0.1 
 	}
 	SubShader 
     {
@@ -30,7 +29,6 @@
             sampler2D _DetailTex ;
             float4 _DetailTex_ST ; 
             
-            float _BlendFactor ; 
             
             struct a2v
             {
@@ -63,7 +61,7 @@
                 
                 fixed3 color1 = tex2D(_MainTex,i.uv).rgb ;
                 fixed3 color2 = tex2D(_DetailTex,i.uv).rgb ; 
-                fixed3 finalColor = lerp(color1,color2,_BlendFactor) ;
+                fixed3 finalColor = color1 * ( color2 * 2 ) ;
                 
                 return fixed4(finalColor,1.0) ; 
                
