@@ -62,7 +62,6 @@ namespace Assets.Scripts.QuadTree
     {
         private ushort[,] mHeightData;
         public int mSize;
-        public float mHeightScale;   
         
         public bool IsValid()
         {
@@ -103,10 +102,7 @@ namespace Assets.Scripts.QuadTree
             return ret; 
         }
 
-        public ushort GetScaleHeightValue(int x , int y )
-        {
-            return (ushort)(mHeightScale * GetScaleHeightValue(x, y)); 
-        }
+   
 
 
         private bool InRange( int x ,int y )
@@ -589,10 +585,7 @@ namespace Assets.Scripts.QuadTree
         }
 
 
-        public void SetHeightScale( float heightScale )
-        {
-            mHeightData.mHeightScale = heightScale; 
-        }
+      
 
 
 

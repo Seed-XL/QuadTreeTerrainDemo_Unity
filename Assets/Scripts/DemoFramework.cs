@@ -4,8 +4,20 @@ using Assets.Scripts.QuadTree;
 
 public class DemoFramework : MonoBehaviour {
 
+    #region 输入操作
+    public float movementSpeed = 1f;
+    public float mouseSensitive = 1f;
+
+    public float mouseScrollSensitive = 1.0f;
+
+    private RenderInWireframe  mWireFrameCtrl; 
+
+    #endregion
+
+
     //摄像机对象
-    public GameObject cameraGo ; 
+    public GameObject cameraGo ;
+    public Camera renderCamera; 
     //地形对象
     public GameObject terrainGo;
 
@@ -50,11 +62,16 @@ public class DemoFramework : MonoBehaviour {
     //4、设置光照阴影
 	void Start ()
     {
+        if( cameraGo != null )
+        {
+            mWireFrameCtrl = cameraGo.GetComponent<RenderInWireframe>();
+        }
+      
+
         mQuadTreeTerrain = new CQuadTreeTerrain();
 
         //制造高度图
         mQuadTreeTerrain.MakeTerrainFault(heightSize,iterations,(ushort)minHeightValue, (ushort)maxHeightValue,filter);
-        mQuadTreeTerrain.SetHeightScale(vertexScale.y); 
 
         //设置对应的纹理块
         AddTile(enTileTypes.lowest_tile);
@@ -64,16 +81,18 @@ public class DemoFramework : MonoBehaviour {
         mQuadTreeTerrain.GenerateTextureMap((uint)terrainTextureSize,(ushort)maxHeightValue,(ushort)minHeightValue);
         ApplyTerrainTexture(mQuadTreeTerrain.TerrainTexture);
 
-
     }
 
 
-    private void ApplyTerrainTexture(  Texture2D texture )
+    #region 地图块操作
+
+
+    private void ApplyTerrainTexture(Texture2D texture)
     {
-        if( terrainGo != null )
+        if (terrainGo != null)
         {
-            MeshRenderer meshRender = terrainGo.GetComponent<MeshRenderer>(); 
-            if( meshRender != null )
+            MeshRenderer meshRender = terrainGo.GetComponent<MeshRenderer>();
+            if (meshRender != null)
             {
                 Shader terrainShader = Shader.Find("Terrain/QuadTree/TerrainRender");
                 if (terrainShader != null)
@@ -81,8 +100,8 @@ public class DemoFramework : MonoBehaviour {
                     meshRender.material = new Material(terrainShader);
                     if (meshRender.material != null)
                     {
-                        meshRender.material.SetTexture("_MainTex",texture) ;
-                        if( detailTexture != null )
+                        meshRender.material.SetTexture("_MainTex", texture);
+                        if (detailTexture != null)
                         {
                             meshRender.material.SetTexture("_DetailTex", detailTexture);
                         }
@@ -91,12 +110,6 @@ public class DemoFramework : MonoBehaviour {
             }
         }
     }
-
-
- 
-
-
-    #region 地图块操作
 
 
     void AddTile( enTileTypes tileType )
@@ -113,18 +126,80 @@ public class DemoFramework : MonoBehaviour {
     #endregion
 
 
+    #region 输入操作
+
+    public void DemoInput()
+    {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            Application.Quit();
+        }
+
+        if (cameraGo != null
+            && renderCamera )
+        {
+            //鼠标操作
+       
+            // 滚轮实现镜头缩进和拉远
+            if (Input.GetAxis("Mouse ScrollWheel") != 0)
+            {
+                renderCamera.fieldOfView = renderCamera.fieldOfView - Input.GetAxis("Mouse ScrollWheel") * mouseScrollSensitive;
+                renderCamera.fieldOfView = Mathf.Clamp(renderCamera.fieldOfView, renderCamera.nearClipPlane, renderCamera.farClipPlane);
+            }
+            //鼠标右键实现视角转动，类似第一人称视角
+            if (Input.GetMouseButton(0))
+            {
+                float rotationX = Input.GetAxis("Mouse X") * mouseSensitive;
+                float rotationY = Input.GetAxis("Mouse Y") * mouseSensitive;
+                cameraGo.transform.Rotate(-rotationY, rotationX, 0);
+            }
+
+
+            //键盘操作
+            if (Input.GetKey(KeyCode.UpArrow))
+            {
+                cameraGo.transform.Translate(transform.forward * movementSpeed, Space.Self);
+            }
+            if (Input.GetKey(KeyCode.DownArrow))
+            {
+                cameraGo.transform.Translate(transform.forward * movementSpeed * -1, Space.Self);
+            }
+            if (Input.GetKey(KeyCode.LeftArrow))
+            {
+                cameraGo.transform.Translate(transform.right * movementSpeed * -1, Space.Self);
+            }
+            if (Input.GetKey(KeyCode.RightArrow))
+            {
+                cameraGo.transform.Translate(transform.right * movementSpeed, Space.Self);
+            }
+            if(Input.GetKeyDown(KeyCode.W))
+            {
+                mWireFrameCtrl.wireframeMode = !mWireFrameCtrl.wireframeMode; 
+            }
+        }
+    }
+
+    #endregion
+
+
+
+    #region 更新及渲染
+    public void DemoRender()
+    {
+        if (mQuadTreeTerrain != null)
+        {
+            mQuadTreeTerrain.Render(terrainGo, vertexScale, mWireFrameCtrl != null ? mWireFrameCtrl.wireframeMode : false);
+        }
+    }
+
+    #endregion
+
+
     // Update is called once per frame
     void Update ()
     {
-        GL.wireframe = true;
-
-        if( mQuadTreeTerrain != null )
-        {
-            RenderInWireframe wireframeCtrl = cameraGo.GetComponent<RenderInWireframe>(); 
-            mQuadTreeTerrain.Render(terrainGo, vertexScale, wireframeCtrl != null ? wireframeCtrl.wireframeMode : false );      
-        }
-
-        GL.wireframe = false;   
+        DemoInput();
+        DemoRender(); 
     }
 
 }
