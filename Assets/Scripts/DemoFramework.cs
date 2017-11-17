@@ -43,6 +43,10 @@ public class DemoFramework : MonoBehaviour {
     public float filter;
 
 
+    public float desiredResolution = 50f;
+    public float minResolution = 10f; 
+
+
     #region 地图Tile
     public Texture2D detailTexture;
 
@@ -75,7 +79,7 @@ public class DemoFramework : MonoBehaviour {
         InitRenderMode(); 
     
         mQuadTreeTerrain = new CQuadTreeTerrain();
-
+        mQuadTreeTerrain.GenerateNodes(heightSize); 
         //制造高度图
         mQuadTreeTerrain.MakeTerrainFault(heightSize, iterations, (ushort)minHeightValue, (ushort)maxHeightValue, filter);
 
@@ -194,7 +198,14 @@ public class DemoFramework : MonoBehaviour {
     {
         if (mQuadTreeTerrain != null)
         {
+            Profiler.BeginSample("QuadTree.FirstRefineNode");
+            float fCenter = (heightSize - 1) >> 1;
+            mQuadTreeTerrain.RefineNode(fCenter, fCenter, heightSize, renderCamera, vertexScale, desiredResolution, minResolution);
+            Profiler.EndSample(); 
+
+            Profiler.BeginSample("QuadTree.Render");
             mQuadTreeTerrain.Render(ref mMeshData, vertexScale);
+            Profiler.EndSample(); 
         }
     }
 

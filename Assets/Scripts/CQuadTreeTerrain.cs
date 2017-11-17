@@ -116,21 +116,23 @@ namespace Assets.Scripts.QuadTree
 
     #region 结点定义 
 
-    /*
-
-
-
-    */
     class CQuadTreeNode
     {
-        public CQuadTreeNode mUpperLeftNode;
-        public CQuadTreeNode mUpperRightNode;
+        public CQuadTreeNode mTopLeftNode;
+        public CQuadTreeNode mTopRightNode;
         public CQuadTreeNode mBottomRightNode;
         public CQuadTreeNode mBottomLetfNode;
 
-        public CQuadTreeNode mParentNode;
-        
+        public bool mbSubdivide;
+        public int mIndexX ;
+        public int mIndexZ ; 
 
+
+        public CQuadTreeNode( int x ,int z )
+        {
+            mIndexX = x;
+            mIndexZ = z; 
+        }
     }
 
 
@@ -152,8 +154,104 @@ namespace Assets.Scripts.QuadTree
     class CQuadTreeTerrain
     {
 
+        #region   核心逻辑
+    
+        public List<CQuadTreeNode> mNodeList = new List<CQuadTreeNode>();  
+
+        private int GetNodeIndex( int x, int z )
+        {
+            return z * mHeightData.mSize + x; 
+        }
+
+        private CQuadTreeNode GetNode( int x, int z )
+        {
+            int idx = GetNodeIndex(x, z);
+            return idx < mNodeList.Count ? mNodeList[idx] : null;     
+        }
+
+
+        public void GenerateNodes( int size )
+        {
+            mNodeList.Clear();
+            for(int z = 0; z < size; ++z )
+            {
+                for(int x  = 0; x < size; ++x )
+                {
+                    CQuadTreeNode node = new CQuadTreeNode(x, z);
+                    node.mbSubdivide = true;
+                    mNodeList.Add(node);  
+                }
+            }    
+        }
+
+        public CQuadTreeNode RefineNode( 
+            float x ,
+            float z ,
+            int curNodeLength ,   //暂时定为节点的个数
+            Camera viewCamera ,
+            Vector3 vectorScale, 
+            float desiredResolution,
+            float minResolution
+            )
+        {
+            if( null == viewCamera )
+            {
+                Debug.LogError("[RefineNode]View Camera is Null!");
+                return null; 
+            }
+
+            int tX = (int)x;
+            int tZ = (int)z;
+
+            CQuadTreeNode qtNode = GetNode(tX, tZ); 
+            if( null == qtNode )
+            {
+                Debug.LogError( string.Format("[RefineNode]No Such Node at :{0}|{1}",tX,tZ));
+                return null ; 
+            }
+
+            //评价公式
+            ushort nodeHeight = GetTrueHeightAtPoint(qtNode.mIndexX, qtNode.mIndexZ); 
+            float fViewDistance = (float)(
+                   Mathf.Abs( viewCamera.transform.position.x  -  qtNode.mIndexX * vectorScale.x )  +
+                   Mathf.Abs(viewCamera.transform.position.y - nodeHeight * vectorScale.y) +
+                   Mathf.Abs(viewCamera.transform.position.z - qtNode.mIndexZ * vectorScale.z) 
+                  );
+
+            float fDenominator = (curNodeLength * minResolution * Mathf.Max(desiredResolution * nodeHeight / 3, 1.0f));
+            float f = fViewDistance / fDenominator ;
+
+
+            qtNode.mbSubdivide = f < 1.0f ? true : false;  
+            if( qtNode.mbSubdivide )
+            {
+                if( !(curNodeLength <= 3) )
+                {
+                    float fChildeNodeOffset = (float)((curNodeLength - 1) >> 2);
+                    int tChildNodeLength = (curNodeLength + 1) >> 1;
+
+                    //bottom-left
+                    qtNode.mBottomLetfNode = RefineNode(x - fChildeNodeOffset, z - fChildeNodeOffset, (int)fChildeNodeOffset, viewCamera,vectorScale, desiredResolution, minResolution);
+                    //bottom-right
+                    qtNode.mBottomRightNode = RefineNode(x + fChildeNodeOffset, z - fChildeNodeOffset, (int)fChildeNodeOffset, viewCamera, vectorScale, desiredResolution, minResolution);
+                    //top-left 
+                    qtNode.mTopLeftNode = RefineNode(x - fChildeNodeOffset, z + fChildeNodeOffset, (int)fChildeNodeOffset, viewCamera, vectorScale, desiredResolution, minResolution);
+                    //top-right
+                    qtNode.mTopRightNode = RefineNode(x + fChildeNodeOffset, z + fChildeNodeOffset, (int)fChildeNodeOffset, viewCamera, vectorScale, desiredResolution, minResolution);
+                }        
+            }
+
+            return qtNode; 
+        }
+
+
+        #endregion
+
+
 
         #region  将模型渲染上去
+     
+
         public void Render( ref stTerrainMeshData meshData ,Vector3 vertexScale )
         {
             Mesh mesh = meshData.mMesh; 
@@ -186,9 +284,9 @@ namespace Assets.Scripts.QuadTree
             Profiler.BeginSample("Rebuild Triangles");
             int nIdx = 0;
             int[] triangles = meshData.mTriangles; //一个正方形对应两个三角形，6个顶点
-            for (int z = 0; z < mHeightData.mSize -1 ; ++z)
+            for (int z = 0; z < mHeightData.mSize - 1; ++z)
             {
-                for (int x = 0; x < mHeightData.mSize - 1 ; ++x)
+                for (int x = 0; x < mHeightData.mSize - 1; ++x)
                 {
                     int bottomLeftIdx = z * mHeightData.mSize + x;
                     int topLeftIdx = (z + 1) * mHeightData.mSize + x;
@@ -200,9 +298,10 @@ namespace Assets.Scripts.QuadTree
                     triangles[nIdx++] = bottomRightIdx;
                     triangles[nIdx++] = topLeftIdx;
                     triangles[nIdx++] = topRightIdx;
-                    triangles[nIdx++] = bottomRightIdx;  
+                    triangles[nIdx++] = bottomRightIdx;
                 }
             }
+
             mesh.triangles = triangles;
             Profiler.EndSample(); 
         }
