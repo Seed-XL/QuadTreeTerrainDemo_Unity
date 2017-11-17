@@ -134,6 +134,16 @@ namespace Assets.Scripts.QuadTree
     }
 
 
+    struct stTerrainMeshData
+    {
+        public Mesh mMesh;
+        public Vector3[] mVertices;
+        public Vector2[] mUV;
+        public int[] mTriangles; 
+    }
+
+
+
 
     #endregion
 
@@ -144,35 +154,20 @@ namespace Assets.Scripts.QuadTree
 
 
         #region  将模型渲染上去
-        public void Render( GameObject terrainGo,Vector3 vertexScale ,bool isWirefame = false  )
+        public void Render( ref stTerrainMeshData meshData ,Vector3 vertexScale )
         {
-            if( null == terrainGo)
+            Mesh mesh = meshData.mMesh; 
+            if( null == mesh  )
             {
-                Debug.LogError("Terrain GameObject is Null"); 
-                return; 
+                Debug.LogError("Terrain without Mesh");
+                return;
             }
 
-            MeshFilter meshFilter = terrainGo.GetComponent<MeshFilter>(); 
-            if( null == meshFilter )
-            {
-                Debug.LogError("Terrain without Comp [MeshFilter]");
-                return; 
-            }
 
-            Mesh mesh = null; 
-            if ( meshFilter.mesh == null )
-            {
-                mesh = new Mesh(); 
-                meshFilter.mesh = mesh;
-            }
-            else
-            {
-                mesh = meshFilter.mesh; 
-            }
-
+            Profiler.BeginSample("Rebuild Vertices & UVs"); 
             int vertexCnt = mHeightData.mSize * mHeightData.mSize;
-            Vector2[] uv = isWirefame ? null : new Vector2[vertexCnt]; 
-            Vector3[] vertices = new Vector3[vertexCnt];
+            Vector2[] uv = meshData.mUV; 
+            Vector3[] vertices = meshData.mVertices ;
             for( int z = 0; z < mHeightData.mSize ; ++z)
             {
                 for(int x = 0; x < mHeightData.mSize ; ++x)
@@ -180,18 +175,17 @@ namespace Assets.Scripts.QuadTree
                     float y = mHeightData.GetRawHeightValue(x, z);
                     int vertexIdx = z * mHeightData.mSize + x; 
                     vertices[vertexIdx] = new Vector3(x*vertexScale.x, y * vertexScale.y, z * vertexScale.z);
-
-                    if( !isWirefame )
-                    {
-                        uv[vertexIdx] = new Vector2((float)x / (float)mHeightData.mSize, (float)z / (float)mHeightData.mSize);
-                    }
+                    uv[vertexIdx] = new Vector2((float)x / (float)mHeightData.mSize, (float)z / (float)mHeightData.mSize);
                 }
             }
             mesh.vertices = vertices;
-            mesh.uv = uv; 
+            mesh.uv = uv;
+            Profiler.EndSample();
 
-            int nIdx = 0; 
-            int[] triangles = new int[(mHeightData.mSize-1)*(mHeightData.mSize-1)*6];  //一个正方形对应两个三角形，6个顶点
+
+            Profiler.BeginSample("Rebuild Triangles");
+            int nIdx = 0;
+            int[] triangles = meshData.mTriangles; //一个正方形对应两个三角形，6个顶点
             for (int z = 0; z < mHeightData.mSize -1 ; ++z)
             {
                 for (int x = 0; x < mHeightData.mSize - 1 ; ++x)
@@ -209,9 +203,8 @@ namespace Assets.Scripts.QuadTree
                     triangles[nIdx++] = bottomRightIdx;  
                 }
             }
-
-            mesh.triangles = triangles; 
-
+            mesh.triangles = triangles;
+            Profiler.EndSample(); 
         }
 
 

@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using Assets.Scripts.QuadTree; 
+using Assets.Scripts.QuadTree;
 
 
 public class DemoFramework : MonoBehaviour {
@@ -10,19 +10,19 @@ public class DemoFramework : MonoBehaviour {
 
     public float mouseScrollSensitive = 1.0f;
 
-    private RenderInWireframe  mWireFrameCtrl; 
+    private RenderInWireframe mWireFrameCtrl;
 
     #endregion
 
 
     //摄像机对象
-    public GameObject cameraGo ;
-    public Camera renderCamera; 
+    public GameObject cameraGo;
+    public Camera renderCamera;
     //地形对象
     public GameObject terrainGo;
 
     //顶点间的距离
-    public Vector3 vertexScale; 
+    public Vector3 vertexScale;
 
     //高度图的边长,也就是结点的个数
     public int heightSize;
@@ -35,11 +35,11 @@ public class DemoFramework : MonoBehaviour {
 
     public bool isGenerateHeightDataRuntime;
     public int iterations;
-    [Range(0,255)]
+    [Range(0, 255)]
     public int minHeightValue;
     [Range(0, 65536)]
-    public int  maxHeightValue;
-    [Range(0,0.9f)]
+    public int maxHeightValue;
+    [Range(0, 0.9f)]
     public float filter;
 
 
@@ -47,38 +47,44 @@ public class DemoFramework : MonoBehaviour {
     public Texture2D detailTexture;
 
     [Range(1, 2048)]
-    public int terrainTextureSize = 256; 
-    public Texture2D[] tiles; 
+    public int terrainTextureSize = 256;
+    public Texture2D[] tiles;
 
     #endregion
 
 
 
-    private CQuadTreeTerrain mQuadTreeTerrain; 
-   
+    private CQuadTreeTerrain mQuadTreeTerrain;
+
+
+
+    #region  顶点数据放里
+
+    private stTerrainMeshData mMeshData; 
+
+    #endregion
+
+
     //1、读取高度图，
     //2、设置顶点间距离，
     //3、读取纹理
     //4、设置光照阴影
-	void Start ()
+    void Start()
     {
-        if( cameraGo != null )
-        {
-            mWireFrameCtrl = cameraGo.GetComponent<RenderInWireframe>();
-        }
-      
-
+        InitMeshData();
+        InitRenderMode(); 
+    
         mQuadTreeTerrain = new CQuadTreeTerrain();
 
         //制造高度图
-        mQuadTreeTerrain.MakeTerrainFault(heightSize,iterations,(ushort)minHeightValue, (ushort)maxHeightValue,filter);
+        mQuadTreeTerrain.MakeTerrainFault(heightSize, iterations, (ushort)minHeightValue, (ushort)maxHeightValue, filter);
 
         //设置对应的纹理块
         AddTile(enTileTypes.lowest_tile);
         AddTile(enTileTypes.low_tile);
         AddTile(enTileTypes.high_tile);
         AddTile(enTileTypes.highest_tile);
-        mQuadTreeTerrain.GenerateTextureMap((uint)terrainTextureSize,(ushort)maxHeightValue,(ushort)minHeightValue);
+        mQuadTreeTerrain.GenerateTextureMap((uint)terrainTextureSize, (ushort)maxHeightValue, (ushort)minHeightValue);
         ApplyTerrainTexture(mQuadTreeTerrain.TerrainTexture);
 
     }
@@ -112,11 +118,11 @@ public class DemoFramework : MonoBehaviour {
     }
 
 
-    void AddTile( enTileTypes tileType )
+    void AddTile(enTileTypes tileType)
     {
         int tileIdx = (int)tileType;
         if (tileIdx < tiles.Length
-            && tiles[tileIdx] != null )
+            && tiles[tileIdx] != null)
         {
             mQuadTreeTerrain.AddTile((enTileTypes)tileIdx, tiles[tileIdx]);
         }
@@ -136,10 +142,10 @@ public class DemoFramework : MonoBehaviour {
         }
 
         if (cameraGo != null
-            && renderCamera )
+            && renderCamera)
         {
             //鼠标操作
-       
+
             // 滚轮实现镜头缩进和拉远
             if (Input.GetAxis("Mouse ScrollWheel") != 0)
             {
@@ -172,9 +178,9 @@ public class DemoFramework : MonoBehaviour {
             {
                 cameraGo.transform.Translate(transform.right * movementSpeed, Space.Self);
             }
-            if(Input.GetKeyDown(KeyCode.W))
+            if (Input.GetKeyDown(KeyCode.W))
             {
-                mWireFrameCtrl.wireframeMode = !mWireFrameCtrl.wireframeMode; 
+                mWireFrameCtrl.wireframeMode = !mWireFrameCtrl.wireframeMode;
             }
         }
     }
@@ -188,7 +194,47 @@ public class DemoFramework : MonoBehaviour {
     {
         if (mQuadTreeTerrain != null)
         {
-            mQuadTreeTerrain.Render(terrainGo, vertexScale, mWireFrameCtrl != null ? mWireFrameCtrl.wireframeMode : false);
+            mQuadTreeTerrain.Render(ref mMeshData, vertexScale);
+        }
+    }
+
+    public void InitMeshData()
+    {
+        if (null == terrainGo)
+        {
+            Debug.LogError("Terrain GameObject is Null");
+            return;
+        }
+
+        MeshFilter meshFilter = terrainGo.GetComponent<MeshFilter>();
+        if (null == meshFilter)
+        {
+            Debug.LogError("Terrain without Comp [MeshFilter]");
+            return;
+        }
+
+        if (meshFilter.mesh == null)
+        {
+            meshFilter.mesh = new Mesh();
+        }
+
+       
+
+        int vertexCnt = heightSize * heightSize;
+        int trianglesCnt = (heightSize - 1) * (heightSize - 1) * 6; 
+        mMeshData.mVertices = new Vector3[vertexCnt];
+        mMeshData.mUV = new Vector2[vertexCnt];
+        mMeshData.mTriangles = new int[trianglesCnt];
+        mMeshData.mMesh = meshFilter.mesh;
+    }
+
+
+
+    public void InitRenderMode() 
+    {
+        if (cameraGo != null)
+        {
+            mWireFrameCtrl = cameraGo.GetComponent<RenderInWireframe>();
         }
     }
 
@@ -198,8 +244,13 @@ public class DemoFramework : MonoBehaviour {
     // Update is called once per frame
     void Update ()
     {
+        Profiler.BeginSample("DemoInput"); 
         DemoInput();
-        DemoRender(); 
+        Profiler.EndSample(); 
+
+        Profiler.BeginSample("DemoRender"); 
+        DemoRender();
+        Profiler.EndSample(); 
     }
 
 }
