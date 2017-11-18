@@ -235,6 +235,7 @@ public class DemoFramework : MonoBehaviour {
         int trianglesCnt = (heightSize - 1) * (heightSize - 1) * 6; 
         mMeshData.mVertices = new Vector3[vertexCnt];
         mMeshData.mUV = new Vector2[vertexCnt];
+        mMeshData.mNormals = new Vector3[vertexCnt];
         mMeshData.mTriangles = new int[trianglesCnt];
         mMeshData.mMesh = meshFilter.mesh;
     }

@@ -136,12 +136,70 @@ namespace Assets.Scripts.QuadTree
     }
 
 
+    enum enNodeTriFanType
+    {
+        Complete_Fan = 0 ,
+        BottomLeft_TopRight = 5,
+        BottomRight_TopLeft = 10,
+        No_Fan = 15
+    }
+
+
+
     struct stTerrainMeshData
     {
         public Mesh mMesh;
         public Vector3[] mVertices;
         public Vector2[] mUV;
-        public int[] mTriangles; 
+        public Vector3[] mNormals; 
+        public int[] mTriangles;
+
+
+        private int mTriIdx;
+          
+
+        public void RenderVertex(
+            int idx , 
+            Vector3 vertex,
+            Vector3 uv
+            )
+        {
+            mVertices[idx] = vertex;
+            mUV[idx] = uv;
+            mTriangles[mTriIdx++] = idx;             
+        }
+
+
+
+        public void Reset()
+        {
+            if( mVertices != null )
+            {
+                for (int i = 0; i < mVertices.Length; ++i)
+                {
+                    mVertices[i].x = mVertices[i].y = mVertices[i].z = 0; 
+                    if( mUV != null )
+                    {
+                        mUV[i].x = mUV[i].y = 0; 
+                    }
+                    if( mNormals != null )
+                    {
+                        mNormals[i].x = mNormals[i].y = 0; 
+                    }
+                }
+            }
+
+            mTriIdx = 0;
+            if ( mTriangles != null )
+            {
+                for( int i = 0; i < mTriangles.Length; ++i)
+                {
+                    mTriangles[i] = 0; 
+                }
+            }
+           
+        }
+
     }
 
 
@@ -158,14 +216,14 @@ namespace Assets.Scripts.QuadTree
     
         public List<CQuadTreeNode> mNodeList = new List<CQuadTreeNode>();  
 
-        private int GetNodeIndex( int x, int z )
+        private int GetIndex( int x, int z )
         {
             return z * mHeightData.mSize + x; 
         }
 
         private CQuadTreeNode GetNode( int x, int z )
         {
-            int idx = GetNodeIndex(x, z);
+            int idx = GetIndex(x, z);
             return idx < mNodeList.Count ? mNodeList[idx] : null;     
         }
 
@@ -212,14 +270,17 @@ namespace Assets.Scripts.QuadTree
 
             //评价公式
             ushort nodeHeight = GetTrueHeightAtPoint(qtNode.mIndexX, qtNode.mIndexZ); 
-            float fViewDistance = (float)(
-                   Mathf.Abs( viewCamera.transform.position.x  -  qtNode.mIndexX * vectorScale.x )  +
-                   Mathf.Abs(viewCamera.transform.position.y - nodeHeight * vectorScale.y) +
-                   Mathf.Abs(viewCamera.transform.position.z - qtNode.mIndexZ * vectorScale.z) 
+            float fViewDistance = Mathf.Sqrt(
+                Mathf.Pow(viewCamera.transform.position.x - qtNode.mIndexX * vectorScale.x ,2)  +
+                Mathf.Pow(viewCamera.transform.position.y - nodeHeight * vectorScale.y,2) +
+                Mathf.Pow(viewCamera.transform.position.z - qtNode.mIndexZ * vectorScale.z,2)
                   );
 
-            float fDenominator = (curNodeLength * minResolution * Mathf.Max(desiredResolution * nodeHeight / 3, 1.0f));
-            float f = fViewDistance / fDenominator ;
+            //float fDenominator = (curNodeLength * minResolution * Mathf.Max(desiredResolution * nodeHeight / 3, 1.0f));
+            //float f = fViewDistance / fDenominator ;
+
+            float fDenominator = Mathf.Max(curNodeLength *  vectorScale.x ,1.0f) ; 
+            float f = fViewDistance / fDenominator;
 
 
             qtNode.mbSubdivide = f < 1.0f ? true : false;  
@@ -231,13 +292,13 @@ namespace Assets.Scripts.QuadTree
                     int tChildNodeLength = (curNodeLength + 1) >> 1;
 
                     //bottom-left
-                    qtNode.mBottomLetfNode = RefineNode(x - fChildeNodeOffset, z - fChildeNodeOffset, (int)fChildeNodeOffset, viewCamera,vectorScale, desiredResolution, minResolution);
+                    qtNode.mBottomLetfNode = RefineNode(x - fChildeNodeOffset, z - fChildeNodeOffset, tChildNodeLength, viewCamera,vectorScale, desiredResolution, minResolution);
                     //bottom-right
-                    qtNode.mBottomRightNode = RefineNode(x + fChildeNodeOffset, z - fChildeNodeOffset, (int)fChildeNodeOffset, viewCamera, vectorScale, desiredResolution, minResolution);
+                    qtNode.mBottomRightNode = RefineNode(x + fChildeNodeOffset, z - fChildeNodeOffset, tChildNodeLength, viewCamera, vectorScale, desiredResolution, minResolution);
                     //top-left 
-                    qtNode.mTopLeftNode = RefineNode(x - fChildeNodeOffset, z + fChildeNodeOffset, (int)fChildeNodeOffset, viewCamera, vectorScale, desiredResolution, minResolution);
+                    qtNode.mTopLeftNode = RefineNode(x - fChildeNodeOffset, z + fChildeNodeOffset, tChildNodeLength, viewCamera, vectorScale, desiredResolution, minResolution);
                     //top-right
-                    qtNode.mTopRightNode = RefineNode(x + fChildeNodeOffset, z + fChildeNodeOffset, (int)fChildeNodeOffset, viewCamera, vectorScale, desiredResolution, minResolution);
+                    qtNode.mTopRightNode = RefineNode(x + fChildeNodeOffset, z + fChildeNodeOffset, tChildNodeLength, viewCamera, vectorScale, desiredResolution, minResolution);
                 }        
             }
 
@@ -251,6 +312,298 @@ namespace Assets.Scripts.QuadTree
 
         #region  将模型渲染上去
      
+        
+
+
+        public void CLOD_Render( ref stTerrainMeshData meshData , Vector3 vertexScale )
+        {
+            meshData.Reset(); 
+            float fCenter = (mHeightData.mSize - 1) >> 1;
+
+            RenderNode(fCenter, fCenter, mHeightData.mSize,ref meshData ,vertexScale);
+        }
+
+
+        private Vector3  GetScaleVector3(float x,float z, Vector3 vectorScale )
+        {
+            return new Vector3(
+                x * vectorScale.x,
+                mHeightData.GetRawHeightValue((int)x,(int)z) * vectorScale.y,
+                z * vectorScale.z 
+                ); 
+        }
+
+        private void RenderNode( float x ,float z ,int curNodeLength ,ref stTerrainMeshData meshData, Vector3 vectorScale  )
+        {
+            int tHeightMapSize = mHeightData.mSize; 
+            int tX = (int)x;
+            int tZ = (int)z;
+
+            CQuadTreeNode node = GetNode(tX, tZ); 
+            if( null == node )
+            {
+                Debug.LogError(string.Format("[RenderNode]No Node at :{0}|{1}", tX, tZ));
+                return; 
+            }
+
+            int iHalfNodeLength = (curNodeLength - 1) >> 1;
+            float fHalfNodeLength = (curNodeLength - 1) / 2.0f;
+
+            int tAdjOffset = curNodeLength - 1;
+
+            float fTexLeft = Mathf.Abs(x - fHalfNodeLength) / tHeightMapSize;
+            float fTexBottom = Mathf.Abs(z - fHalfNodeLength) / tHeightMapSize;
+            float fTexRight = Mathf.Abs(x+ fHalfNodeLength) / tHeightMapSize;
+            float fTexTop = Mathf.Abs(z + fHalfNodeLength) / tHeightMapSize;
+
+            float fMidX = (fTexLeft + fTexRight) / 2.0f;
+            float fMidZ = (fTexBottom + fTexTop) / 2.0f; 
+            
+            if( node.mbSubdivide )
+            {
+                #region 已经是最小的LOD
+                
+                /*
+                 *   
+                 *   2
+                 *   1
+                 * 
+                 */
+
+                //已经是最小的LOD的
+                if( curNodeLength <= 3 )
+                {
+                    CQuadTreeNode bottomNeighborNode = GetNode(tX, tZ - tAdjOffset);
+                    CQuadTreeNode rightNeighborNode =  GetNode(tX + tAdjOffset, tZ );
+                    CQuadTreeNode topNeighborNode = GetNode(tX, tZ + tAdjOffset);
+                    CQuadTreeNode leftNeighborNode = GetNode(tX - tAdjOffset, tZ);
+
+                    bool bDrawBottomMidVertex = (tZ - tAdjOffset < 0) || ( bottomNeighborNode != null && bottomNeighborNode.mbSubdivide );
+                    bool bDrawRightMidVertex = (tX + tAdjOffset >= tHeightMapSize) || ( rightNeighborNode != null && rightNeighborNode.mbSubdivide );
+                    bool bDrawTopMidVertex = (tZ + tAdjOffset >= tHeightMapSize) || (topNeighborNode != null && topNeighborNode.mbSubdivide);
+                    bool bDrawLeftMidVertex = (tX - tAdjOffset < 0) || (leftNeighborNode != null && leftNeighborNode.mbSubdivide);  
+
+                    //center 
+                    meshData.RenderVertex(
+                        GetIndex(tX, tZ),
+                        GetScaleVector3(x,z,vectorScale),
+                        new Vector2(fMidX, fMidZ)
+                        );
+
+                    //bottom left
+                    meshData.RenderVertex(
+                        GetIndex(tX - iHalfNodeLength , tZ - iHalfNodeLength) ,
+                        GetScaleVector3(x - fHalfNodeLength, z - fHalfNodeLength, vectorScale),
+                        new Vector2(fTexLeft,fTexBottom)
+                        );
+
+                    //1、是否到了底部的边界  
+                    //2、或者说底部的拆分了
+                    //满足以上两个条件，均需要画出中间的点
+                    
+
+                    CQuadTreeNode neighborNode = GetNode(tX, tZ - tAdjOffset); 
+                    if ( (tZ - tAdjOffset ) < 0  || (neighborNode != null && neighborNode.mbSubdivide) )
+                    {
+                        //bottom mid
+                        meshData.RenderVertex(
+                          GetIndex(tX, tZ - iHalfNodeLength),
+                          GetScaleVector3(x, z - fHalfNodeLength, vectorScale),
+                          new Vector2(fMidX, fTexBottom)
+                          );
+                    }
+
+
+                    //bottom right
+                    meshData.RenderVertex(
+                        GetIndex(tX + iHalfNodeLength, tZ - iHalfNodeLength),
+                        GetScaleVector3(x + fHalfNodeLength, z - fHalfNodeLength, vectorScale),
+                        new Vector2(fTexRight, fTexBottom)
+                        );
+
+
+                    //1、是否到了右边的边界  
+                    //2、或者说右边今结点的拆分了
+                    //满足以上两个条件，均需要画出中间的点
+                    neighborNode = GetNode(tX + tAdjOffset, tZ );
+                    if ((tX + tAdjOffset) >= tHeightMapSize || (neighborNode != null && neighborNode.mbSubdivide))
+                    {
+                        //right mid
+                        meshData.RenderVertex(
+                          GetIndex(tX + iHalfNodeLength, tZ),
+                          GetScaleVector3(x + fHalfNodeLength, z, vectorScale),
+                          new Vector2(fTexRight, fMidZ)
+                          );
+                    }
+
+
+                    //top right
+                    meshData.RenderVertex(
+                        GetIndex(tX + iHalfNodeLength, tZ + iHalfNodeLength),
+                        GetScaleVector3(x + fHalfNodeLength, z + fHalfNodeLength, vectorScale),
+                        new Vector2(fTexRight, fTexTop)
+                        );
+
+
+                    //1、是否到了上部的边界  
+                    //2、或者说上边的邻结点的拆分了
+                    //满足以上两个条件，均需要画出中间的点
+                    neighborNode = GetNode(tX , tZ + tAdjOffset);
+                    if ((tZ + tAdjOffset) >= tHeightMapSize || (neighborNode != null && neighborNode.mbSubdivide))
+                    {
+                        //top mid
+                        meshData.RenderVertex(
+                          GetIndex(tX , tZ + iHalfNodeLength),
+                          GetScaleVector3(x , z + fHalfNodeLength, vectorScale),
+                          new Vector2(fMidX, fTexTop)
+                          );
+                    }
+
+
+                    //top left 
+                    meshData.RenderVertex(
+                        GetIndex(tX - iHalfNodeLength, tZ + iHalfNodeLength),
+                        GetScaleVector3(x - fHalfNodeLength, z + fHalfNodeLength, vectorScale),
+                        new Vector2(fTexLeft, fTexTop)
+                        );
+
+
+                    //1、是否到了上部的边界  
+                    //2、或者说上边的邻结点的拆分了
+                    //满足以上两个条件，均需要画出中间的点
+                    neighborNode = GetNode(tX - tAdjOffset, tZ);
+                    if ((tX - tAdjOffset) < 0 || (neighborNode != null && neighborNode.mbSubdivide))
+                    {
+                        //left mid
+                        meshData.RenderVertex(
+                          GetIndex(tX - iHalfNodeLength, tZ ),
+                          GetScaleVector3(x - fHalfNodeLength, z , vectorScale),
+                          new Vector2(fTexLeft, fMidZ)
+                          );
+                    }
+
+                    //bottom left again
+                    meshData.RenderVertex(
+                        GetIndex(tX - iHalfNodeLength, tZ - iHalfNodeLength),
+                        GetScaleVector3(x - fHalfNodeLength, z - fHalfNodeLength, vectorScale),
+                        new Vector2(fTexLeft, fTexBottom)
+                        );
+
+                }
+            }  // <= 3 
+
+            #endregion
+
+            #region 还可以继续划分
+
+            else
+            {
+                int tChildHalfLength = (curNodeLength - 1) >> 2;
+                float fChildHalfLength = (float)tChildHalfLength;
+
+                int tChildNodeLength = (curNodeLength + 1) >> 1;
+
+                int tFanCode = 0 ;
+                //top right sud divide
+                CQuadTreeNode childNode = GetNode(tX + tChildHalfLength, tZ + tChildHalfLength);
+                if ( childNode != null && childNode.mbSubdivide )
+                {
+                    tFanCode |= 8; 
+                }
+
+                //top left
+                childNode = GetNode(tX - tChildHalfLength, tZ + tChildHalfLength); 
+                if( childNode != null && childNode.mbSubdivide )
+                {
+                    tFanCode |= 4; 
+                }
+
+                //bottom left 
+                childNode = GetNode(tX - tChildHalfLength, tZ - tChildHalfLength);
+                if( childNode != null && childNode.mbSubdivide )
+                {
+                    tFanCode |= 2;
+                }
+
+                //bottom right 
+                childNode = GetNode(tX + tChildHalfLength, tZ - tChildHalfLength); 
+                if( childNode != null && childNode.mbSubdivide )
+                {
+                    tFanCode |= 1; 
+                }
+
+                #region 各种情况的组合 
+
+                enNodeTriFanType fanType = (enNodeTriFanType)tFanCode;
+                switch ( fanType )
+                {
+
+                    #region 四个子结点都不分割
+                    //子结点一个都不分割
+                    case enNodeTriFanType.No_Fan:
+                        {
+                            //bottom left 
+                            RenderNode(x - fChildHalfLength, z - fChildHalfLength, tChildNodeLength, ref meshData, vectorScale);
+
+                            //bottom right 
+                            RenderNode(x + fChildHalfLength, z - fChildHalfLength, tChildNodeLength, ref meshData, vectorScale);
+
+                            //top left 
+                            RenderNode(x - fChildHalfLength, z + fChildHalfLength, tChildNodeLength, ref meshData, vectorScale);
+
+                            //top right 
+                            RenderNode(x + fChildHalfLength, z + fChildHalfLength, tChildNodeLength, ref meshData, vectorScale);
+                            break; 
+                        }
+                    #endregion
+
+
+                    #region 左上右下分割，左下右下画三角形
+                    //左上右下分割，左下右上画三角形
+                    case enNodeTriFanType.BottomLeft_TopRight:
+                        {
+                            
+                            //center 
+                            meshData.RenderVertex(
+                                GetIndex(tX , tZ),
+                                GetScaleVector3(x, z, vectorScale),
+                                new Vector2(fMidX, fMidZ)
+                                );
+
+                            //right mid 
+                            meshData.RenderVertex(
+                              GetIndex(tX + iHalfNodeLength, tZ),
+                              GetScaleVector3(x + fHalfNodeLength, z, vectorScale),
+                              new Vector2(fTexRight, fMidZ)
+                              );
+
+                            //top right 
+                            meshData.RenderVertex(
+                                GetIndex(tX + iHalfNodeLength, tZ + iHalfNodeLength),
+                                GetScaleVector3(x + fHalfNodeLength, z + fHalfNodeLength, vectorScale),
+                                new Vector2(fTexRight, fTexTop)
+                                );
+
+                            //top mid
+
+                            //
+
+                            break; 
+                        }
+                        #endregion
+
+                }
+
+                #endregion
+
+
+
+            }
+
+            #endregion
+        }
+
+
 
         public void Render( ref stTerrainMeshData meshData ,Vector3 vertexScale )
         {
@@ -263,8 +616,8 @@ namespace Assets.Scripts.QuadTree
 
 
             Profiler.BeginSample("Rebuild Vertices & UVs"); 
-            int vertexCnt = mHeightData.mSize * mHeightData.mSize;
-            Vector2[] uv = meshData.mUV; 
+            Vector2[] uv = meshData.mUV;
+            Vector3[] normals = meshData.mNormals; 
             Vector3[] vertices = meshData.mVertices ;
             for( int z = 0; z < mHeightData.mSize ; ++z)
             {
@@ -278,6 +631,7 @@ namespace Assets.Scripts.QuadTree
             }
             mesh.vertices = vertices;
             mesh.uv = uv;
+            mesh.normals = normals;
             Profiler.EndSample();
 
 
