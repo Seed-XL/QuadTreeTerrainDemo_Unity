@@ -18,3 +18,7 @@
 
 #### 产生裂缝的地方
 ![Bug](http://wx2.sinaimg.cn/mw690/6b98bc8agy1flnqn036k1j20e809oglw.jpg)
+
+
+#### 来张平面的Gif
+![平面Gif](https://wx1.sinaimg.cn/mw690/6b98bc8agy1flnw0j327yg20fk09qb29.gif)
