@@ -15,6 +15,8 @@ public class DemoFramework : MonoBehaviour {
     #endregion
 
 
+    public bool renderQuadTreeCLOD = false;
+
     //摄像机对象
     public GameObject cameraGo;
     public Camera renderCamera;
@@ -186,6 +188,10 @@ public class DemoFramework : MonoBehaviour {
             {
                 mWireFrameCtrl.wireframeMode = !mWireFrameCtrl.wireframeMode;
             }
+            if( Input.GetKeyDown(KeyCode.S))
+            {
+                renderQuadTreeCLOD = !renderQuadTreeCLOD; 
+            }
         }
     }
 
@@ -198,14 +204,26 @@ public class DemoFramework : MonoBehaviour {
     {
         if (mQuadTreeTerrain != null)
         {
-            Profiler.BeginSample("QuadTree.FirstRefineNode");
-            float fCenter = (heightSize - 1) >> 1;
-            mQuadTreeTerrain.RefineNode(fCenter, fCenter, heightSize, renderCamera, vertexScale, desiredResolution, minResolution);
-            Profiler.EndSample(); 
+           
+           
+            if( renderQuadTreeCLOD )
+            {
+                Profiler.BeginSample("QuadTree.FirstRefineNode");
+                float fCenter = (heightSize - 1) >> 1;
+                mQuadTreeTerrain.RefineNode(fCenter, fCenter, heightSize, renderCamera, vertexScale, desiredResolution, minResolution);
+                Profiler.EndSample();
 
-            Profiler.BeginSample("QuadTree.Render");
-            mQuadTreeTerrain.Render(ref mMeshData, vertexScale);
-            Profiler.EndSample(); 
+                Profiler.BeginSample("QuadTree.Render");
+                mQuadTreeTerrain.CLOD_Render(ref mMeshData, vertexScale);
+                Profiler.EndSample();
+            }
+            else
+            {
+                Profiler.BeginSample("Normla.Render");
+                mQuadTreeTerrain.Render(ref mMeshData, vertexScale);
+                Profiler.EndSample();
+            }
+          
         }
     }
 
