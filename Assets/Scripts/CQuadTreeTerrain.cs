@@ -1141,19 +1141,35 @@ namespace Assets.Scripts.QuadTree
                             {
                                 //Top Left 2 Triangle
                                 ///1 center left mid top left
-                                meshData.RenderTriangle(tCenterVertex, tLeftMidVertex, tTopLeftVertex);
+                                //TO DO:怀疑是这里的问题
+                                if ( bDrawLeftMidVertex )
+                                {
+                                    meshData.RenderTriangle(tCenterVertex, tLeftMidVertex, tTopLeftVertex);
+                                }
+                                else
+                                {
+                                    meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tTopLeftVertex);
+                                }
+
+
                                 ///2 centert top left top mid
-                                meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopMidVertex);
+                                if (bDrawTopMidVertex)
+                                {
+                                    meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopMidVertex);
+                                }
+                                else
+                                {
+                                    meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopRightVertex);
+                                }
+                               
+                                //top right 
+                                RenderNode(fChildRightX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
 
                                 //bottom right 
                                 RenderNode(fChildRightX, fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
 
-                                //top left 
-                                RenderNode(fChildLeftX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
-
-                                //top right 
-                                RenderNode(fChildRightX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
-
+                                //bottom left 
+                                RenderNode(fChildLeftX, fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
 
                                 break; 
                             }
@@ -1165,7 +1181,16 @@ namespace Assets.Scripts.QuadTree
                             {
                                 //Bottom Right 2 Triangle
                                 ///1 center  right mid  bottom right 
-                                meshData.RenderTriangle(tCenterVertex, tRightMidVertex, tBottomRightVertex);
+                                ///TO DO:
+                                if( bDrawRightMidVertex  )
+                                {
+                                    meshData.RenderTriangle(tCenterVertex, tRightMidVertex, tBottomRightVertex);
+                                }
+                                else
+                                {
+                                    meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tBottomRightVertex); 
+                                }
+                               
 
                                 #region Bottom Triangle
                                 if (bDrawBottomMidVertex)
@@ -1282,6 +1307,7 @@ namespace Assets.Scripts.QuadTree
                     int vertexIdx = z * mHeightData.mSize + x; 
                     vertices[vertexIdx] = new Vector3(x*vertexScale.x, y * vertexScale.y, z * vertexScale.z);
                     uv[vertexIdx] = new Vector2((float)x / (float)mHeightData.mSize, (float)z / (float)mHeightData.mSize);
+                    normals[vertexIdx] = Vector3.zero; 
                 }
             }
             //mesh.vertices = vertices;
