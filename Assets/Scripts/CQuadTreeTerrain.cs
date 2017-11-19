@@ -340,11 +340,11 @@ namespace Assets.Scripts.QuadTree
                 Mathf.Pow(viewCamera.transform.position.z - qtNode.mIndexZ * vectorScale.z,2)
                   );
 
-            //float fDenominator = (curNodeLength * minResolution * Mathf.Max(desiredResolution * nodeHeight / 3, 1.0f));
-            //float f = fViewDistance / fDenominator ;
-
-            float fDenominator = Mathf.Max(curNodeLength *  vectorScale.x ,1.0f) ; 
+            float fDenominator = (curNodeLength * minResolution * Mathf.Max(desiredResolution * nodeHeight / 3, 1.0f));
             float f = fViewDistance / fDenominator;
+
+            //float fDenominator = Mathf.Max(curNodeLength *  vectorScale.x ,1.0f) ; 
+            //float f = fViewDistance / fDenominator;
 
 
             qtNode.mbSubdivide = f < 1.0f ? true : false;  
