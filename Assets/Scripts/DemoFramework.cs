@@ -46,7 +46,7 @@ public class DemoFramework : MonoBehaviour {
 
 
     public float desiredResolution = 50f;
-    public float minResolution = 10f; 
+    public float minResolution = 10f;
 
 
     #region 地图Tile

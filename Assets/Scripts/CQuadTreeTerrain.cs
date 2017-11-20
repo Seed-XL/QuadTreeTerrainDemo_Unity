@@ -333,12 +333,19 @@ namespace Assets.Scripts.QuadTree
             }
 
             //评价公式
-            ushort nodeHeight = GetTrueHeightAtPoint(qtNode.mIndexX, qtNode.mIndexZ); 
+            ushort nodeHeight = GetTrueHeightAtPoint(qtNode.mIndexX, qtNode.mIndexZ);
             float fViewDistance = Mathf.Sqrt(
-                Mathf.Pow(viewCamera.transform.position.x - qtNode.mIndexX * vectorScale.x ,2)  +
-                Mathf.Pow(viewCamera.transform.position.y - nodeHeight * vectorScale.y,2) +
-                Mathf.Pow(viewCamera.transform.position.z - qtNode.mIndexZ * vectorScale.z,2)
+                Mathf.Pow(viewCamera.transform.position.x - qtNode.mIndexX * vectorScale.x, 2) +
+                Mathf.Pow(viewCamera.transform.position.y - nodeHeight * vectorScale.y, 2) +
+                Mathf.Pow(viewCamera.transform.position.z - qtNode.mIndexZ * vectorScale.z, 2)
                   );
+
+            //float fViewDistance = (float)(
+            //      Mathf.Abs(viewCamera.transform.position.x - qtNode.mIndexX * vectorScale.x) +
+            //      Mathf.Abs(viewCamera.transform.position.y - nodeHeight * vectorScale.y) +
+            //      Mathf.Abs(viewCamera.transform.position.z - qtNode.mIndexZ * vectorScale.z)
+            //     );
+
 
             float fDenominator = (curNodeLength * minResolution * Mathf.Max(desiredResolution * nodeHeight / 3, 1.0f));
             float f = fViewDistance / fDenominator;
@@ -423,8 +430,8 @@ namespace Assets.Scripts.QuadTree
             int iX = (int)fX;
             int iZ = (int)fZ;
 
-            CQuadTreeNode node = GetNode(iX, iZ); 
-            if( null == node )
+            CQuadTreeNode curNode = GetNode(iX, iZ); 
+            if( null == curNode )
             {
                 Debug.LogError(string.Format("[RenderNode]No Node at :{0}|{1}", iX, iZ));
                 return; 
@@ -474,6 +481,7 @@ namespace Assets.Scripts.QuadTree
             CQuadTreeNode topNeighborNode = GetNode(iX, iZTop);
             CQuadTreeNode leftNeighborNode = GetNode(iXLeft, iZ);
 
+            //举一个例子，如果下边的邻结点没有，或者下面的同级的邻结点是需要划分的，即当前结点也需要划分
             bool bDrawBottomMidVertex = (iZBottom < 0) || (bottomNeighborNode != null && bottomNeighborNode.mbSubdivide);
             bool bDrawRightMidVertex = (iXRight >= tHeightMapSize) || (rightNeighborNode != null && rightNeighborNode.mbSubdivide);
             bool bDrawTopMidVertex = (iZTop >= tHeightMapSize) || (topNeighborNode != null && topNeighborNode.mbSubdivide);
@@ -499,7 +507,7 @@ namespace Assets.Scripts.QuadTree
             //Bottom Mide Vertex 
             stVertexAtrribute tBottomMidVertex = GenerateVertex(iX, iBottomZ, fX, fBottomZ, fTexMidX, fTexBottom, vectorScale); 
 
-            if ( node.mbSubdivide )
+            if ( curNode.mbSubdivide )
             {
                 #region 已经是最小的LOD
                 
@@ -649,14 +657,15 @@ namespace Assets.Scripts.QuadTree
                                 //bottom left 
                                 RenderNode( fChildLeftX ,fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
 
-                                //bottom right 
-                                RenderNode(fChildRightX,fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
-
                                 //top left 
                                 RenderNode(fChildLeftX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
 
                                 //top right 
                                 RenderNode(fChildRightX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
+
+                                //bottom right 
+                                RenderNode(fChildRightX,fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
+
                                 break;
                             }
                         #endregion
@@ -665,18 +674,56 @@ namespace Assets.Scripts.QuadTree
                         //左上右下分割，左下右上画三角形
                         case enNodeTriFanType.BottomLeft_TopRight:
                             {
-                                //Bottom Left 2 Triangle
-                                ///1 center bottom mid bottom left 
-                                meshData.RenderTriangle(tCenterVertex, tBottomMidVertex, tBottomLeftVertex);
-                                ///2 center  bottom left  left mid 
-                                meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tLeftMidVertex);
 
+                                #region Draw 2 
+                                ///////////////// Draw 2 ////////////////////////
+                                //Bottom Left 2 Triangle
+                                if ( bDrawLeftMidVertex && bDrawBottomMidVertex )
+                                {
+                                    ///1 center bottom mid bottom left 
+                                    meshData.RenderTriangle(tCenterVertex, tBottomMidVertex, tBottomLeftVertex);
+                                    ///2 center  bottom left  left mid 
+                                    meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tLeftMidVertex);
+                                }
+                                else if( bDrawLeftMidVertex )
+                                {
+                                    ///1 center bottom mid bottom left 
+                                    meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomLeftVertex);
+
+                                    ///2 center  bottom left  left mid 
+                                    meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tLeftMidVertex);
+                                }
+                                else if( bDrawBottomMidVertex )
+                                {
+                                    ///1 center bottom mid bottom left 
+                                    meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomLeftVertex);
+
+                                    ///2 center  bottom left  top left 
+                                    meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tTopLeftVertex);
+                                }
+                                /////////////////////Draw 2 //////////////////////////////
+                                #endregion
+
+                                #region Draw 8
+                                ////////////////////Draw 8 //////////////////////////////
                                 //Top Right  Triangle 
-                                ///1 center top mid top right
-                                meshData.RenderTriangle(tCenterVertex, tTopMidVertex, tTopRightVertex);
-                                ///2 center top right right mid
-                                meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tRightMidVertex); 
-                                  
+                                if ( bDrawTopMidVertex && bDrawRightMidVertex )
+                                {
+                                    ///1 center top mid top right
+                                    meshData.RenderTriangle(tCenterVertex, tTopMidVertex, tTopRightVertex);
+                                    ///2 center top right right mid
+                                    meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tRightMidVertex);
+                                }
+                                else if( bDrawTopMidVertex )
+                                {
+                                    ///1 center top mid top right
+                                    meshData.RenderTriangle(tCenterVertex, tTopMidVertex, tTopRightVertex);
+                                    // 2 center top right bottom right
+                                    meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tBottomRightVertex);
+                                }
+                                //////////////////////////draw 8 //////////////////////////////////////
+                                #endregion
+
                                 //top left 
                                 RenderNode(fChildLeftX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
                                 //bottom right 
@@ -689,19 +736,63 @@ namespace Assets.Scripts.QuadTree
                         #region 10 左下右上分割，左上右下画三角形
                         case enNodeTriFanType.BottomRight_TopLeft:
                             {
-
+                                #region Draw 4 
+                                //////////////Draw 4 ///////////////////////
                                 //Top Left 2 Triangle
-                                ///1 center left mid top left
-                                meshData.RenderTriangle(tCenterVertex, tLeftMidVertex, tTopLeftVertex);
-                                ///2 centert top left top mid
-                                meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopMidVertex);
+                                if( bDrawLeftMidVertex && bDrawTopMidVertex  )
+                                {
+                                    ///1 center left mid top left
+                                    meshData.RenderTriangle(tCenterVertex, tLeftMidVertex, tTopLeftVertex);
+                                    ///2 centert top left top mid
+                                    meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopMidVertex);
+                                }
+                                else if( bDrawLeftMidVertex  )
+                                {
+                                    ///1 center left mid top left
+                                    meshData.RenderTriangle(tCenterVertex, tLeftMidVertex, tTopLeftVertex);
+                                    ///2 centert top left top right
+                                    meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopRightVertex);
+                                }
+                                else if( bDrawTopMidVertex )
+                                {
+                                    ///1 center left mid top left
+                                    meshData.RenderTriangle(tCenterVertex, tLeftMidVertex, tTopLeftVertex);
+                                    ///2 centert top left top mid
+                                    meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopMidVertex);
+                                }
+                                /////////////////Draw 4 ///////////////////
 
+                                #endregion
+
+                                #region Draw 1
+                                ///////////////////////Draw 1 ////////////////////////
                                 //Bottom Right 2 Triangle
-                                ///1 center  right mid  bottom right 
-                                meshData.RenderTriangle(tCenterVertex, tRightMidVertex, tBottomRightVertex);
-                                ///2 center  bottom right bottom mid 
-                                meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomMidVertex); 
-                                 
+                                if(bDrawRightMidVertex && bDrawBottomMidVertex )
+                                {
+                                    ///1 center  right mid  bottom right 
+                                    meshData.RenderTriangle(tCenterVertex, tRightMidVertex, tBottomRightVertex);
+                                    ///2 center  bottom right bottom mid 
+                                    meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomMidVertex);
+                                }
+                                else if( bDrawRightMidVertex )
+                                {
+                                    ///1 center  right mid  bottom right 
+                                    meshData.RenderTriangle(tCenterVertex, tRightMidVertex, tBottomRightVertex);
+                                    ///2 center  bottom right bottom left 
+                                    meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomLeftVertex);
+                                }
+                                else if( bDrawBottomMidVertex  )
+                                {
+                                    ///1 center  top right  bottom right 
+                                    meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tBottomRightVertex);
+                                    ///2 center  bottom right bottom mid 
+                                    meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomMidVertex);
+                                }
+
+                                /////////////////////Draw 1 ////////////////////////////////
+
+                                #endregion
+
                                 //top right 
                                 RenderNode(fX + fChildHalfLength, fZ + fChildHalfLength, tChildNodeLength, ref meshData, vectorScale);
                                 //bottom left 
