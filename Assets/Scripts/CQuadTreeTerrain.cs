@@ -157,6 +157,235 @@ namespace Assets.Scripts.QuadTree
     }
 
 
+    enum enFanPosition
+    {
+        One = 1 ,
+        Two = 2 ,
+        Four = 4 ,
+        Eight = 8 ,
+    }
+
+
+
+
+    struct stFanGenerator
+    {
+        private bool mbDrawLeftMid;
+        private bool mbDrawTopMid;
+        private bool mbDrawRightMid; 
+        private bool mbDrawBottomMid;
+
+        private stVertexAtrribute mCenterVertex;
+        private stVertexAtrribute mBottomLeftVertex;
+        private stVertexAtrribute mLeftMidVertex;
+        private stVertexAtrribute mTopLeftVertex;
+        private stVertexAtrribute mTopMidVertex;
+        private stVertexAtrribute mTopRightVertex;
+        private stVertexAtrribute mRightMidVertex;
+        private stVertexAtrribute mBottomRightVertex;
+        private stVertexAtrribute mBottomMidVertex; 
+
+
+        public stFanGenerator(
+            bool drawLeftMid ,
+            bool drawTopMid,
+            bool drawRightMid,
+            bool drawBottomMid,
+            stVertexAtrribute centerVertex,
+            stVertexAtrribute bottomLeftVertex,
+            stVertexAtrribute leftMidVertex ,
+            stVertexAtrribute topLeftVertex ,
+            stVertexAtrribute topMidVertex ,
+            stVertexAtrribute topRightVertex ,
+            stVertexAtrribute rightMidVertex ,
+            stVertexAtrribute bottomRightVertex ,
+            stVertexAtrribute bottomMidVertex
+            )
+        {
+            mbDrawLeftMid = drawLeftMid;
+            mbDrawTopMid = drawTopMid;
+            mbDrawRightMid = drawRightMid;
+            mbDrawBottomMid = drawBottomMid;
+
+            mCenterVertex = centerVertex;
+            mBottomLeftVertex = bottomLeftVertex;
+            mLeftMidVertex = leftMidVertex;
+            mTopLeftVertex = topLeftVertex;
+            mTopMidVertex = topMidVertex;
+            mTopRightVertex = topRightVertex;
+            mRightMidVertex = rightMidVertex;
+            mBottomRightVertex = bottomRightVertex;
+            mBottomMidVertex = bottomMidVertex; 
+        }
+
+
+        public void DrawFan( ref stTerrainMeshData meshData , enFanPosition fanPos )
+        {
+            switch (  fanPos )
+            {
+                #region Draw 1
+                case enFanPosition.One:
+                    {
+                        ///////////////////////Draw 1 ////////////////////////
+                        //Bottom Right 2 Triangle
+                        if (mbDrawRightMid  && mbDrawBottomMid)
+                        {
+                            ///1 center  right mid  bottom right 
+                            meshData.RenderTriangle(mCenterVertex, mRightMidVertex, mBottomRightVertex);
+                            ///2 center  bottom right bottom mid 
+                            meshData.RenderTriangle(mCenterVertex, mBottomRightVertex, mBottomMidVertex);
+                        }
+                        else if (mbDrawRightMid)
+                        {
+                            ///1 center  right mid  bottom right 
+                            meshData.RenderTriangle(mCenterVertex, mRightMidVertex, mBottomRightVertex);
+                            ///2 center  bottom right bottom left 
+                            meshData.RenderTriangle(mCenterVertex, mBottomRightVertex, mBottomLeftVertex);
+                        }
+                        else if (mbDrawBottomMid)
+                        {
+                            ///1 center  top right  bottom right 
+                            meshData.RenderTriangle(mCenterVertex, mTopRightVertex, mBottomRightVertex);
+                            ///2 center  bottom right bottom mid 
+                            meshData.RenderTriangle(mCenterVertex, mBottomRightVertex, mBottomMidVertex);
+                        }
+                        else
+                        {
+                            meshData.RenderTriangle(mCenterVertex, mTopRightVertex, mBottomRightVertex);
+                            meshData.RenderTriangle(mCenterVertex, mBottomRightVertex, mBottomLeftVertex); 
+                        }
+
+                        /////////////////////Draw 1 ////////////////////////////////
+                        break;
+                    }
+
+                #endregion
+
+                #region Draw 2
+                case enFanPosition.Two:
+                    {
+                  
+                        ///////////////// Draw 2 ////////////////////////
+                        //Bottom Left 2 Triangle
+                        if (mbDrawLeftMid && mbDrawBottomMid)
+                        {
+                            ///1 center bottom mid bottom left 
+                            meshData.RenderTriangle(mCenterVertex, mBottomMidVertex, mBottomLeftVertex);
+                            ///2 center  bottom left  left mid 
+                            meshData.RenderTriangle(mCenterVertex, mBottomLeftVertex, mLeftMidVertex);
+                        }
+                        else if (mbDrawLeftMid)
+                        {
+                            ///1 center bottom mid bottom left 
+                            meshData.RenderTriangle(mCenterVertex, mBottomRightVertex, mBottomLeftVertex);
+                            ///2 center  bottom left  left mid 
+                            meshData.RenderTriangle(mCenterVertex, mBottomLeftVertex, mLeftMidVertex);
+                        }
+                        else if (mbDrawBottomMid)
+                        {
+                            ///1 center bottom mid bottom left 
+                            meshData.RenderTriangle(mCenterVertex, mBottomMidVertex, mBottomLeftVertex);
+
+                            ///2 center  bottom left  top left 
+                            meshData.RenderTriangle(mCenterVertex, mBottomLeftVertex, mTopLeftVertex);
+                        }
+                        else
+                        {
+                            ///1 center bottom mid bottom left 
+                            meshData.RenderTriangle(mCenterVertex, mBottomRightVertex, mBottomLeftVertex);
+                            ///2 center  bottom left  top left 
+                            meshData.RenderTriangle(mCenterVertex, mBottomLeftVertex, mTopLeftVertex);
+                        }
+                        /////////////////////Draw 2 //////////////////////////////
+                        break;
+                    }
+
+                #endregion
+
+                #region Draw 4
+                case enFanPosition.Four:
+                    {
+                        //////////////Draw 4 ///////////////////////
+                        //Top Left 2 Triangle
+                        if (mbDrawLeftMid && mbDrawTopMid)
+                        {
+                            ///1 center left mid top left
+                            meshData.RenderTriangle(mCenterVertex, mLeftMidVertex, mTopLeftVertex);
+                            ///2 centert top left top mid
+                            meshData.RenderTriangle(mCenterVertex, mTopLeftVertex, mTopMidVertex);
+                        }
+                        else if (mbDrawLeftMid)
+                        {
+                            ///1 center left mid top left
+                            meshData.RenderTriangle(mCenterVertex, mLeftMidVertex, mTopLeftVertex);
+                            ///2 centert top left top right
+                            meshData.RenderTriangle(mCenterVertex, mTopLeftVertex, mTopRightVertex);
+                        }
+                        else if (mbDrawTopMid)
+                        {
+                            ///1 center left mid top left
+                            meshData.RenderTriangle(mCenterVertex, mBottomLeftVertex, mTopLeftVertex);
+                            ///2 centert top left top mid
+                            meshData.RenderTriangle(mCenterVertex, mTopLeftVertex, mTopMidVertex);
+                        }
+                        else
+                        {
+                            ///1 center left mid top left
+                            meshData.RenderTriangle(mCenterVertex, mBottomLeftVertex, mTopLeftVertex);
+                            ///2 centert top left top right
+                            meshData.RenderTriangle(mCenterVertex, mTopLeftVertex, mTopRightVertex);
+                        }
+                        /////////////////Draw 4 ///////////////////
+
+
+                        break;
+                    }
+                    #endregion
+
+                    #region Draw 8
+                case enFanPosition.Eight:
+                    {
+                        //Top Right  Triangle 
+                        if (mbDrawTopMid && mbDrawRightMid)
+                        {
+                            ///1 center top mid top right
+                            meshData.RenderTriangle(mCenterVertex, mTopMidVertex, mTopRightVertex);
+                            ///2 center top right right mid
+                            meshData.RenderTriangle(mCenterVertex, mTopRightVertex, mRightMidVertex);
+                        }
+                        else if (mbDrawTopMid)
+                        {
+                            ///1 center top mid top right
+                            meshData.RenderTriangle(mCenterVertex, mTopMidVertex, mTopRightVertex);
+                            // 2 center top right bottom right
+                            meshData.RenderTriangle(mCenterVertex, mTopRightVertex, mBottomRightVertex);
+                        }
+                        else if (mbDrawRightMid)
+                        {
+                            ///1 center top mid top right
+                            meshData.RenderTriangle(mCenterVertex, mTopLeftVertex, mTopRightVertex);
+                            ///2 center top right right mid
+                            meshData.RenderTriangle(mCenterVertex, mTopRightVertex, mRightMidVertex);
+                        }
+                        else
+                        {
+                            ///1 center top mid top right
+                            meshData.RenderTriangle(mCenterVertex, mTopLeftVertex, mTopRightVertex);
+                            // 2 center top right bottom right
+                            meshData.RenderTriangle(mCenterVertex, mTopRightVertex, mBottomRightVertex);
+                        }
+                        break; 
+                    }
+
+                    #endregion
+
+            }
+
+        }
+
+    }
+
+
     struct stVertexAtrribute
     {
         public Vector3 mVertice;
@@ -298,7 +527,7 @@ namespace Assets.Scripts.QuadTree
                 for(int x  = 0; x < size; ++x )
                 {
                     CQuadTreeNode node = new CQuadTreeNode(x, z);
-                    node.mbSubdivide = true;
+                    node.mbSubdivide = false;
                     mNodeList.Add(node);  
                 }
             }
@@ -306,7 +535,31 @@ namespace Assets.Scripts.QuadTree
             Debug.Log(string.Format("[GenerateNodes Done] {0} ",mNodeList.Count));  
         }
 
-        public CQuadTreeNode RefineNode( 
+
+        public void ResetNodeSubdivide()
+        {
+            for( int i = 0; i < mNodeList.Count; ++i )
+            {
+                mNodeList[i].mbSubdivide = false; 
+            }
+        }
+
+
+        public CQuadTreeNode RefineNode(
+             float x,
+             float z,
+             int curNodeLength,   //暂时定为节点的个数
+             Camera viewCamera,
+             Vector3 vectorScale,
+             float desiredResolution,
+             float minResolution
+             )
+        {
+            ResetNodeSubdivide(); 
+            return RefineNodeImpl(x, z, curNodeLength, viewCamera, vectorScale, desiredResolution, minResolution); 
+        }
+
+        public CQuadTreeNode RefineNodeImpl( 
             float x ,
             float z ,
             int curNodeLength ,   //暂时定为节点的个数
@@ -365,13 +618,13 @@ namespace Assets.Scripts.QuadTree
                     int tChildNodeLength = (curNodeLength + 1) >> 1;
 
                     //bottom-left
-                    qtNode.mBottomLetfNode = RefineNode(x - fChildeNodeOffset, z - fChildeNodeOffset, tChildNodeLength, viewCamera,vectorScale, desiredResolution, minResolution);
+                    qtNode.mBottomLetfNode = RefineNodeImpl(x - fChildeNodeOffset, z - fChildeNodeOffset, tChildNodeLength, viewCamera,vectorScale, desiredResolution, minResolution);
                     //bottom-right
-                    qtNode.mBottomRightNode = RefineNode(x + fChildeNodeOffset, z - fChildeNodeOffset, tChildNodeLength, viewCamera, vectorScale, desiredResolution, minResolution);
+                    qtNode.mBottomRightNode = RefineNodeImpl(x + fChildeNodeOffset, z - fChildeNodeOffset, tChildNodeLength, viewCamera, vectorScale, desiredResolution, minResolution);
                     //top-left 
-                    qtNode.mTopLeftNode = RefineNode(x - fChildeNodeOffset, z + fChildeNodeOffset, tChildNodeLength, viewCamera, vectorScale, desiredResolution, minResolution);
+                    qtNode.mTopLeftNode = RefineNodeImpl(x - fChildeNodeOffset, z + fChildeNodeOffset, tChildNodeLength, viewCamera, vectorScale, desiredResolution, minResolution);
                     //top-right
-                    qtNode.mTopRightNode = RefineNode(x + fChildeNodeOffset, z + fChildeNodeOffset, tChildNodeLength, viewCamera, vectorScale, desiredResolution, minResolution);
+                    qtNode.mTopRightNode = RefineNodeImpl(x + fChildeNodeOffset, z + fChildeNodeOffset, tChildNodeLength, viewCamera, vectorScale, desiredResolution, minResolution);
                 }        
             }
 
@@ -505,8 +758,24 @@ namespace Assets.Scripts.QuadTree
             //Bottom Right Vertex 
             stVertexAtrribute tBottomRightVertex = GenerateVertex(iRightX, iBottomZ, fRightX, fBottomZ, fTexRight, fTexBottom, vectorScale);
             //Bottom Mide Vertex 
-            stVertexAtrribute tBottomMidVertex = GenerateVertex(iX, iBottomZ, fX, fBottomZ, fTexMidX, fTexBottom, vectorScale); 
+            stVertexAtrribute tBottomMidVertex = GenerateVertex(iX, iBottomZ, fX, fBottomZ, fTexMidX, fTexBottom, vectorScale);
 
+            stFanGenerator tFanGenerator = new stFanGenerator(
+                bDrawLeftMidVertex,
+                bDrawTopMidVertex,
+                bDrawRightMidVertex,
+                bDrawBottomMidVertex,
+                tCenterVertex,
+                tBottomLeftVertex,
+                tLeftMidVertex,
+                tTopLeftVertex,
+                tTopMidVertex,
+                tTopRightVertex,
+                tRightMidVertex,
+                tBottomRightVertex,
+                tBottomMidVertex
+                ); 
+                
             if ( curNode.mbSubdivide )
             {
                 #region 已经是最小的LOD
@@ -514,76 +783,10 @@ namespace Assets.Scripts.QuadTree
                 //已经是最小的LOD的
                 if( curNodeLength <= 3 )
                 {
-                    #region Left Triangle
-
-                    //1、是否到了左部的边界  
-                    //2、或者说左部的拆分了
-                    //满足以上两个条件，均需要画出左边中间的点
-                    if (bDrawLeftMidVertex)
-                    {
-                        ///1  //center  bottom Left  left Mid
-                        meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tLeftMidVertex);
-                        ///2  center left mid  top left
-                        meshData.RenderTriangle(tCenterVertex, tLeftMidVertex, tTopLeftVertex);
-                    }
-                    else
-                    {
-                        ///1  center  bottom left top left
-                        meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tTopLeftVertex);
-                    }
-                    #endregion
-
-                    #region  Top Triangle
-                    
-                    if( bDrawTopMidVertex )
-                    {
-                        ///1  center  top left top mid
-                        meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopMidVertex);
-                        ///2 center top mid  top right
-                        meshData.RenderTriangle(tCenterVertex, tTopMidVertex, tTopRightVertex); 
-                    }
-                    else
-                    {
-                        //1center top Left top Right
-                        meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopRightVertex); 
-                    }
-
-
-                    #endregion
-
-                    #region Right Triangle
-
-                    if( bDrawRightMidVertex )
-                    {
-                        ///1 center  top Right  right Mid
-                        meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tRightMidVertex);
-                        ///2 center right mid bottom right
-                        meshData.RenderTriangle(tCenterVertex, tRightMidVertex, tBottomRightVertex); 
-                    }
-                    else
-                    {
-                        ///1 center top right bottom right
-                        meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tBottomRightVertex); 
-                    }
-
-                    #endregion
-
-                    #region Bottom Triangle
-                    if( bDrawBottomMidVertex )
-                    {
-                        ///1 center bottom right bottom mid
-                        meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomMidVertex);
-                        ///2 center bottom mid bottom left
-                        meshData.RenderTriangle(tCenterVertex, tBottomMidVertex, tBottomLeftVertex); 
-                    }
-                    else
-                    {
-                        ///1 center bottom right bottom left 
-                        meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomLeftVertex); 
-                    }
-
-                    #endregion
-
+                    tFanGenerator.DrawFan(ref meshData, enFanPosition.One);
+                    tFanGenerator.DrawFan(ref meshData, enFanPosition.Two);
+                    tFanGenerator.DrawFan(ref meshData, enFanPosition.Four);
+                    tFanGenerator.DrawFan(ref meshData, enFanPosition.Eight);
                 } // <= 3 
 
                 #endregion
@@ -675,54 +878,8 @@ namespace Assets.Scripts.QuadTree
                         case enNodeTriFanType.BottomLeft_TopRight:
                             {
 
-                                #region Draw 2 
-                                ///////////////// Draw 2 ////////////////////////
-                                //Bottom Left 2 Triangle
-                                if ( bDrawLeftMidVertex && bDrawBottomMidVertex )
-                                {
-                                    ///1 center bottom mid bottom left 
-                                    meshData.RenderTriangle(tCenterVertex, tBottomMidVertex, tBottomLeftVertex);
-                                    ///2 center  bottom left  left mid 
-                                    meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tLeftMidVertex);
-                                }
-                                else if( bDrawLeftMidVertex )
-                                {
-                                    ///1 center bottom mid bottom left 
-                                    meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomLeftVertex);
-
-                                    ///2 center  bottom left  left mid 
-                                    meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tLeftMidVertex);
-                                }
-                                else if( bDrawBottomMidVertex )
-                                {
-                                    ///1 center bottom mid bottom left 
-                                    meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomLeftVertex);
-
-                                    ///2 center  bottom left  top left 
-                                    meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tTopLeftVertex);
-                                }
-                                /////////////////////Draw 2 //////////////////////////////
-                                #endregion
-
-                                #region Draw 8
-                                ////////////////////Draw 8 //////////////////////////////
-                                //Top Right  Triangle 
-                                if ( bDrawTopMidVertex && bDrawRightMidVertex )
-                                {
-                                    ///1 center top mid top right
-                                    meshData.RenderTriangle(tCenterVertex, tTopMidVertex, tTopRightVertex);
-                                    ///2 center top right right mid
-                                    meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tRightMidVertex);
-                                }
-                                else if( bDrawTopMidVertex )
-                                {
-                                    ///1 center top mid top right
-                                    meshData.RenderTriangle(tCenterVertex, tTopMidVertex, tTopRightVertex);
-                                    // 2 center top right bottom right
-                                    meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tBottomRightVertex);
-                                }
-                                //////////////////////////draw 8 //////////////////////////////////////
-                                #endregion
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Two);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Eight);
 
                                 //top left 
                                 RenderNode(fChildLeftX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
@@ -736,62 +893,8 @@ namespace Assets.Scripts.QuadTree
                         #region 10 左下右上分割，左上右下画三角形
                         case enNodeTriFanType.BottomRight_TopLeft:
                             {
-                                #region Draw 4 
-                                //////////////Draw 4 ///////////////////////
-                                //Top Left 2 Triangle
-                                if( bDrawLeftMidVertex && bDrawTopMidVertex  )
-                                {
-                                    ///1 center left mid top left
-                                    meshData.RenderTriangle(tCenterVertex, tLeftMidVertex, tTopLeftVertex);
-                                    ///2 centert top left top mid
-                                    meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopMidVertex);
-                                }
-                                else if( bDrawLeftMidVertex  )
-                                {
-                                    ///1 center left mid top left
-                                    meshData.RenderTriangle(tCenterVertex, tLeftMidVertex, tTopLeftVertex);
-                                    ///2 centert top left top right
-                                    meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopRightVertex);
-                                }
-                                else if( bDrawTopMidVertex )
-                                {
-                                    ///1 center left mid top left
-                                    meshData.RenderTriangle(tCenterVertex, tLeftMidVertex, tTopLeftVertex);
-                                    ///2 centert top left top mid
-                                    meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopMidVertex);
-                                }
-                                /////////////////Draw 4 ///////////////////
-
-                                #endregion
-
-                                #region Draw 1
-                                ///////////////////////Draw 1 ////////////////////////
-                                //Bottom Right 2 Triangle
-                                if(bDrawRightMidVertex && bDrawBottomMidVertex )
-                                {
-                                    ///1 center  right mid  bottom right 
-                                    meshData.RenderTriangle(tCenterVertex, tRightMidVertex, tBottomRightVertex);
-                                    ///2 center  bottom right bottom mid 
-                                    meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomMidVertex);
-                                }
-                                else if( bDrawRightMidVertex )
-                                {
-                                    ///1 center  right mid  bottom right 
-                                    meshData.RenderTriangle(tCenterVertex, tRightMidVertex, tBottomRightVertex);
-                                    ///2 center  bottom right bottom left 
-                                    meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomLeftVertex);
-                                }
-                                else if( bDrawBottomMidVertex  )
-                                {
-                                    ///1 center  top right  bottom right 
-                                    meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tBottomRightVertex);
-                                    ///2 center  bottom right bottom mid 
-                                    meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomMidVertex);
-                                }
-
-                                /////////////////////Draw 1 ////////////////////////////////
-
-                                #endregion
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.One);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Four);
 
                                 //top right 
                                 RenderNode(fX + fChildHalfLength, fZ + fChildHalfLength, tChildNodeLength, ref meshData, vectorScale);
@@ -806,75 +909,10 @@ namespace Assets.Scripts.QuadTree
                         #region 0 直接画出8个三角形
                         case enNodeTriFanType.Complete_Fan:
                             {
-                                #region Left Triangle
-
-                                //1、是否到了左部的边界  
-                                //2、或者说左部的拆分了
-                                //满足以上两个条件，均需要画出左边中间的点
-                                if (bDrawLeftMidVertex)
-                                {
-                                    ///1  //center  bottom Left  left Mid
-                                    meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tLeftMidVertex);
-                                    ///2  center left mid  top left
-                                    meshData.RenderTriangle(tCenterVertex, tLeftMidVertex, tTopLeftVertex);
-                                }
-                                else
-                                {
-                                    ///1  center  bottom left top left
-                                    meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tTopLeftVertex);
-                                }
-                                #endregion
-
-                                #region  Top Triangle
-
-                                if (bDrawTopMidVertex)
-                                {
-                                    ///1  center  top left top mid
-                                    meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopMidVertex);
-                                    ///2 center top mid  top right
-                                    meshData.RenderTriangle(tCenterVertex, tTopMidVertex, tTopRightVertex);
-                                }
-                                else
-                                {
-                                    //1center top Left top Right
-                                    meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopRightVertex);
-                                }
-
-
-                                #endregion
-
-                                #region Right Triangle
-
-                                if (bDrawRightMidVertex)
-                                {
-                                    ///1 center  top Right  right Mid
-                                    meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tRightMidVertex);
-                                    ///2 center right mid bottom right
-                                    meshData.RenderTriangle(tCenterVertex, tRightMidVertex, tBottomRightVertex);
-                                }
-                                else
-                                {
-                                    ///1 center top right bottom right
-                                    meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tBottomRightVertex);
-                                }
-
-                                #endregion
-
-                                #region Bottom Triangle
-                                if (bDrawBottomMidVertex)
-                                {
-                                    ///1 center bottom right bottom mid
-                                    meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomMidVertex);
-                                    ///2 center bottom mid bottom left
-                                    meshData.RenderTriangle(tCenterVertex, tBottomMidVertex, tBottomLeftVertex);
-                                }
-                                else
-                                {
-                                    ///1 center bottom right bottom left 
-                                    meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomLeftVertex);
-                                }
-
-                                #endregion
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.One);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Two);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Four);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Eight);
 
                                 break;
                             }
@@ -884,48 +922,9 @@ namespace Assets.Scripts.QuadTree
                         #region 1 左下左上右上划三角形
                         case enNodeTriFanType.BottomLeft_TopLeft_TopRight:
                             {
-                                ///1 center bottom mid bottom left 
-                                meshData.RenderTriangle(tCenterVertex, tBottomMidVertex, tBottomLeftVertex);
-
-                                #region Left Triangle
-
-                                //1、是否到了左部的边界  
-                                //2、或者说左部的拆分了
-                                //满足以上两个条件，均需要画出左边中间的点
-                                if (bDrawLeftMidVertex)
-                                {
-                                    ///1  //center  bottom Left  left Mid
-                                    meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tLeftMidVertex);
-                                    ///2  center left mid  top left
-                                    meshData.RenderTriangle(tCenterVertex, tLeftMidVertex, tTopLeftVertex);
-                                }
-                                else
-                                {
-                                    ///1  center  bottom left top left
-                                    meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tTopLeftVertex);
-                                }
-                                #endregion
-
-                                #region  Top Triangle
-
-                                if (bDrawTopMidVertex)
-                                {
-                                    ///1  center  top left top mid
-                                    meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopMidVertex);
-                                    ///2 center top mid  top right
-                                    meshData.RenderTriangle(tCenterVertex, tTopMidVertex, tTopRightVertex);
-                                }
-                                else
-                                {
-                                    //1center top Left top Right
-                                    meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopRightVertex);
-                                }
-
-
-                                #endregion
-
-                                ///2 center top right right mid
-                                meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tRightMidVertex);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Two);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Four);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Eight);
 
                                 //Bottom Right Child Node
                                 RenderNode(fChildRightX, fChildBottomZ, tChildNodeLength, ref meshData, vectorScale); 
@@ -939,46 +938,9 @@ namespace Assets.Scripts.QuadTree
 
                         case enNodeTriFanType.TopLeft_TopRight_BottomRight:
                             {
-                                ///1 center left mid top left
-                                meshData.RenderTriangle(tCenterVertex, tLeftMidVertex, tTopLeftVertex);
-
-                                #region  Top Triangle
-
-                                if (bDrawTopMidVertex)
-                                {
-                                    ///1  center  top left top mid
-                                    meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopMidVertex);
-                                    ///2 center top mid  top right
-                                    meshData.RenderTriangle(tCenterVertex, tTopMidVertex, tTopRightVertex);
-                                }
-                                else
-                                {
-                                    //1center top Left top Right
-                                    meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopRightVertex);
-                                }
-
-
-                                #endregion
-
-                                #region Right Triangle
-
-                                if (bDrawRightMidVertex)
-                                {
-                                    ///1 center  top Right  right Mid
-                                    meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tRightMidVertex);
-                                    ///2 center right mid bottom right
-                                    meshData.RenderTriangle(tCenterVertex, tRightMidVertex, tBottomRightVertex);
-                                }
-                                else
-                                {
-                                    ///1 center top right bottom right
-                                    meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tBottomRightVertex);
-                                }
-
-                                #endregion
-
-                                ///2 center  bottom right bottom mid 
-                                meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomMidVertex);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.One);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Four);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Eight);
 
                                 //bottom left 
                                 RenderNode(fChildLeftX, fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
@@ -993,29 +955,8 @@ namespace Assets.Scripts.QuadTree
 
                         case enNodeTriFanType.TopLeft_TopRight:
                             {
-                                ///1 center left mid top left
-                                meshData.RenderTriangle(tCenterVertex, tLeftMidVertex, tTopLeftVertex);
-
-                                #region  Top Triangle
-
-                                if (bDrawTopMidVertex)
-                                {
-                                    ///1  center  top left top mid
-                                    meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopMidVertex);
-                                    ///2 center top mid  top right
-                                    meshData.RenderTriangle(tCenterVertex, tTopMidVertex, tTopRightVertex);
-                                }
-                                else
-                                {
-                                    //1center top Left top Right
-                                    meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopRightVertex);
-                                }
-
-
-                                #endregion
-
-                                ///2 center top right right mid
-                                meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tRightMidVertex);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Four);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Eight);
 
                                 //bottom left 
                                 RenderNode(fChildLeftX, fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
@@ -1030,44 +971,9 @@ namespace Assets.Scripts.QuadTree
                         #region 4 右上右下左下划三角形
                         case enNodeTriFanType.TopRight_BottomRight_BottomLeft:
                             {
-                                ///1 center top mid top right
-                                meshData.RenderTriangle(tCenterVertex, tTopMidVertex, tTopRightVertex);
-
-                                #region Right Triangle
-
-                                if (bDrawRightMidVertex)
-                                {
-                                    ///1 center  top Right  right Mid
-                                    meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tRightMidVertex);
-                                    ///2 center right mid bottom right
-                                    meshData.RenderTriangle(tCenterVertex, tRightMidVertex, tBottomRightVertex);
-                                }
-                                else
-                                {
-                                    ///1 center top right bottom right
-                                    meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tBottomRightVertex);
-                                }
-
-                                #endregion
-
-                                #region Bottom Triangle
-                                if (bDrawBottomMidVertex)
-                                {
-                                    ///1 center bottom right bottom mid
-                                    meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomMidVertex);
-                                    ///2 center bottom mid bottom left
-                                    meshData.RenderTriangle(tCenterVertex, tBottomMidVertex, tBottomLeftVertex);
-                                }
-                                else
-                                {
-                                    ///1 center bottom right bottom left 
-                                    meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomLeftVertex);
-                                }
-
-                                #endregion
-
-                                ///2 center  bottom left  left mid 
-                                meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tLeftMidVertex);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.One);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Two);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Eight);
 
                                 //top left 
                                 RenderNode(fChildLeftX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
@@ -1080,28 +986,8 @@ namespace Assets.Scripts.QuadTree
                         #region 6 右上右下划三角形
                         case enNodeTriFanType.TopRight_BottomRight:
                             {
-                                ///1 center top mid top right
-                                meshData.RenderTriangle(tCenterVertex, tTopMidVertex, tTopRightVertex);
-
-                                #region Right Triangle
-
-                                if (bDrawRightMidVertex)
-                                {
-                                    ///1 center  top Right  right Mid
-                                    meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tRightMidVertex);
-                                    ///2 center right mid bottom right
-                                    meshData.RenderTriangle(tCenterVertex, tRightMidVertex, tBottomRightVertex);
-                                }
-                                else
-                                {
-                                    ///1 center top right bottom right
-                                    meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tBottomRightVertex);
-                                }
-
-                                #endregion
-
-                                ///2 center  bottom right bottom mid 
-                                meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomMidVertex);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.One);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Eight);
 
                                 //bottom left 
                                 RenderNode(fChildLeftX, fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
@@ -1117,11 +1003,7 @@ namespace Assets.Scripts.QuadTree
                         #region 7 右上划三角形
                         case enNodeTriFanType.TopRight:
                             {
-                                //Top Right  Triangle 
-                                ///1 center top mid top right
-                                meshData.RenderTriangle(tCenterVertex, tTopMidVertex, tTopRightVertex);
-                                ///2 center top right right mid
-                                meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tRightMidVertex);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Eight);
 
                                 //bottom left 
                                 RenderNode(fChildLeftX, fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
@@ -1140,48 +1022,9 @@ namespace Assets.Scripts.QuadTree
                         #region 8 右下左下左上划三角形
                         case enNodeTriFanType.BottomRight_BottomLeft_TopLeft:
                             {
-                                //Bottom Right 2 Triangle
-                                ///1 center  right mid  bottom right 
-                                meshData.RenderTriangle(tCenterVertex, tRightMidVertex, tBottomRightVertex);
-
-                                #region Bottom Triangle
-                                if (bDrawBottomMidVertex)
-                                {
-                                    ///1 center bottom right bottom mid
-                                    meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomMidVertex);
-                                    ///2 center bottom mid bottom left
-                                    meshData.RenderTriangle(tCenterVertex, tBottomMidVertex, tBottomLeftVertex);
-                                }
-                                else
-                                {
-                                    ///1 center bottom right bottom left 
-                                    meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomLeftVertex);
-                                }
-
-                                #endregion
-
-                                #region Left Triangle
-
-                                //1、是否到了左部的边界  
-                                //2、或者说左部的拆分了
-                                //满足以上两个条件，均需要画出左边中间的点
-                                if (bDrawLeftMidVertex)
-                                {
-                                    ///1  //center  bottom Left  left Mid
-                                    meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tLeftMidVertex);
-                                    ///2  center left mid  top left
-                                    meshData.RenderTriangle(tCenterVertex, tLeftMidVertex, tTopLeftVertex);
-                                }
-                                else
-                                {
-                                    ///1  center  bottom left top left
-                                    meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tTopLeftVertex);
-                                }
-                                #endregion
-
-                                ///2 centert top left top mid
-                                meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopMidVertex);
-
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.One);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Two);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Four);
                                 //top right 
                                 RenderNode(fChildRightX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
 
@@ -1192,30 +1035,8 @@ namespace Assets.Scripts.QuadTree
                         #region 9 左下左上划三角形
                         case enNodeTriFanType.BottomLeft_TopLeft:
                             {
-                                ///1 center bottom mid bottom left 
-                                meshData.RenderTriangle(tCenterVertex, tBottomMidVertex, tBottomLeftVertex);
-
-                                #region Left Triangle
-
-                                //1、是否到了左部的边界  
-                                //2、或者说左部的拆分了
-                                //满足以上两个条件，均需要画出左边中间的点
-                                if (bDrawLeftMidVertex)
-                                {
-                                    ///1  //center  bottom Left  left Mid
-                                    meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tLeftMidVertex);
-                                    ///2  center left mid  top left
-                                    meshData.RenderTriangle(tCenterVertex, tLeftMidVertex, tTopLeftVertex);
-                                }
-                                else
-                                {
-                                    ///1  center  bottom left top left
-                                    meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tTopLeftVertex);
-                                }
-                                #endregion
-
-                                ///2 centert top left top mid
-                                meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopMidVertex);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Two);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Four);
 
                                 //bottom right 
                                 RenderNode(fChildRightX, fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
@@ -1230,29 +1051,8 @@ namespace Assets.Scripts.QuadTree
                         #region 11 左上划三角形
                         case enNodeTriFanType.TopLeft:
                             {
-                                //Top Left 2 Triangle
-                                ///1 center left mid top left
-                                //TO DO:怀疑是这里的问题
-                                if ( bDrawLeftMidVertex )
-                                {
-                                    meshData.RenderTriangle(tCenterVertex, tLeftMidVertex, tTopLeftVertex);
-                                }
-                                else
-                                {
-                                    meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tTopLeftVertex);
-                                }
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Four);
 
-
-                                ///2 centert top left top mid
-                                if (bDrawTopMidVertex)
-                                {
-                                    meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopMidVertex);
-                                }
-                                else
-                                {
-                                    meshData.RenderTriangle(tCenterVertex, tTopLeftVertex, tTopRightVertex);
-                                }
-                               
                                 //top right 
                                 RenderNode(fChildRightX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
 
@@ -1270,38 +1070,8 @@ namespace Assets.Scripts.QuadTree
                         #region 12 左下右下划三角形
                         case enNodeTriFanType.BottomLeft_BottomRight:
                             {
-                                //Bottom Right 2 Triangle
-                                ///1 center  right mid  bottom right 
-                                ///TO DO:
-                                if( bDrawRightMidVertex  )
-                                {
-                                    meshData.RenderTriangle(tCenterVertex, tRightMidVertex, tBottomRightVertex);
-                                }
-                                else
-                                {
-                                    meshData.RenderTriangle(tCenterVertex, tTopRightVertex, tBottomRightVertex); 
-                                }
-                               
-
-                                #region Bottom Triangle
-                                if (bDrawBottomMidVertex)
-                                {
-                                    ///1 center bottom right bottom mid
-                                    meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomMidVertex);
-                                    ///2 center bottom mid bottom left
-                                    meshData.RenderTriangle(tCenterVertex, tBottomMidVertex, tBottomLeftVertex);
-                                }
-                                else
-                                {
-                                    ///1 center bottom right bottom left 
-                                    meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomLeftVertex);
-                                }
-
-                                #endregion
-
-                                ///2 center  bottom left  left mid 
-                                meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tLeftMidVertex);
-
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.One);
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Two);
 
                                 //top left 
                                 RenderNode(fChildLeftX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
@@ -1317,12 +1087,7 @@ namespace Assets.Scripts.QuadTree
                         #region 13 左下划三角形
                         case enNodeTriFanType.BottomLeft:
                             {
-                                //Bottom Left 2 Triangle
-                                ///1 center bottom mid bottom left 
-                                meshData.RenderTriangle(tCenterVertex, tBottomMidVertex, tBottomLeftVertex);
-                                ///2 center  bottom left  left mid 
-                                meshData.RenderTriangle(tCenterVertex, tBottomLeftVertex, tLeftMidVertex);
-
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.Two);
 
                                 //bottom right 
                                 RenderNode(fChildRightX, fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
@@ -1341,12 +1106,7 @@ namespace Assets.Scripts.QuadTree
                         #region 14 右下划三角形
                         case enNodeTriFanType.BottomRight:
                             {
-                                //Bottom Right 2 Triangle
-                                ///1 center  right mid  bottom right 
-                                meshData.RenderTriangle(tCenterVertex, tRightMidVertex, tBottomRightVertex);
-                                ///2 center  bottom right bottom mid 
-                                meshData.RenderTriangle(tCenterVertex, tBottomRightVertex, tBottomMidVertex);
-
+                                tFanGenerator.DrawFan(ref meshData, enFanPosition.One);
                                 //bottom left 
                                 RenderNode(fChildLeftX, fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
 
