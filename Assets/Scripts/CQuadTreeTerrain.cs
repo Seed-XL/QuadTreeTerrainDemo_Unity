@@ -545,6 +545,26 @@ namespace Assets.Scripts.QuadTree
         }
 
 
+        private bool CanChildNodeDivide( CQuadTreeNode childNode , CQuadTreeNode parentANeighborNode , CQuadTreeNode parentBNeighborNode )
+        {
+            bool bRet = false;
+            if(  childNode != null  )
+            {
+                bRet = childNode.mbSubdivide; 
+
+                if( parentANeighborNode != null )
+                {
+                    bRet &= parentANeighborNode.mbSubdivide;
+                }
+                if( parentBNeighborNode != null )
+                {
+                    bRet &= parentBNeighborNode.mbSubdivide; 
+                }
+            }
+            return bRet; 
+        }
+
+
         public CQuadTreeNode RefineNode(
              float x,
              float z,
@@ -816,13 +836,18 @@ namespace Assets.Scripts.QuadTree
                     CQuadTreeNode topRightChildNode = GetNode( iChildRightX,iChildTopZ);
                     CQuadTreeNode topLeftChildNode = GetNode(iChildLeftX, iChildTopZ);
                     CQuadTreeNode bottomLeftChildNode = GetNode(iChildLeftX, iChildBottomZ);
-                    CQuadTreeNode bottomRightChildNode = GetNode(iChildRightX, iChildBottomZ); 
+                    CQuadTreeNode bottomRightChildNode = GetNode(iChildRightX, iChildBottomZ);
 
-                    bool bTopRightChildDivide = topRightChildNode != null && topRightChildNode.mbSubdivide;
-                    bool bTopLeftChildDivide = topLeftChildNode != null && topLeftChildNode.mbSubdivide;
-                    bool bBottomLeftChildDivide = bottomLeftChildNode != null && bottomLeftChildNode.mbSubdivide;
-                    bool bBottomRightChildDivide = bottomRightChildNode != null && bottomRightChildNode.mbSubdivide; 
-
+                    //拆分程度不能相差2
+                    //左上子结点
+                    bool bTopLeftChildDivide = CanChildNodeDivide(topLeftChildNode,leftNeighborNode,topNeighborNode);
+                    //右上子结点
+                    bool bTopRightChildDivide = CanChildNodeDivide(topRightChildNode,topNeighborNode,rightNeighborNode);
+                    //右下
+                    bool bBottomRightChildDivide = CanChildNodeDivide(bottomRightChildNode,bottomNeighborNode,rightNeighborNode);
+                    //左下
+                    bool bBottomLeftChildDivide = CanChildNodeDivide(bottomLeftChildNode,bottomNeighborNode,leftNeighborNode);
+                  
                     //top right sud divide
                     if ( bTopRightChildDivide )
                     {
