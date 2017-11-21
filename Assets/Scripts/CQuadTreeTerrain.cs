@@ -125,13 +125,14 @@ namespace Assets.Scripts.QuadTree
 
         public bool mbSubdivide;
         public int mIndexX ;
-        public int mIndexZ ; 
-
+        public int mIndexZ ;
+        public enNodeType mNodeType; 
 
         public CQuadTreeNode( int x ,int z )
         {
             mIndexX = x;
-            mIndexZ = z; 
+            mIndexZ = z;
+            mbSubdivide = true;
         }
     }
 
@@ -157,6 +158,7 @@ namespace Assets.Scripts.QuadTree
     }
 
 
+    //哪个位置的三角形
     enum enFanPosition
     {
         One = 1 ,
@@ -165,6 +167,16 @@ namespace Assets.Scripts.QuadTree
         Eight = 8 ,
     }
 
+
+    //节点的位置
+    enum enNodeType
+    {
+        Root = 0 ,
+        BottomRight =1  ,
+        BottomLeft = 2 , 
+        TopLeft = 4 ,
+        TopRight = 8  ,
+    }
 
 
 
@@ -527,7 +539,6 @@ namespace Assets.Scripts.QuadTree
                 for(int x  = 0; x < size; ++x )
                 {
                     CQuadTreeNode node = new CQuadTreeNode(x, z);
-                    node.mbSubdivide = false;
                     mNodeList.Add(node);  
                 }
             }
@@ -545,7 +556,7 @@ namespace Assets.Scripts.QuadTree
         }
 
 
-        private bool CanChildNodeDivide( CQuadTreeNode childNode , CQuadTreeNode parentANeighborNode , CQuadTreeNode parentBNeighborNode )
+        private bool CanNodeDivide( CQuadTreeNode childNode , CQuadTreeNode parentANeighborNode , CQuadTreeNode parentBNeighborNode )
         {
             bool bRet = false;
             if(  childNode != null  )
@@ -575,14 +586,19 @@ namespace Assets.Scripts.QuadTree
              float minResolution
              )
         {
-            ResetNodeSubdivide(); 
-            return RefineNodeImpl(x, z, curNodeLength, viewCamera, vectorScale, desiredResolution, minResolution); 
+            //ResetNodeSubdivide(); 
+            return RefineNodeImpl(x, z, curNodeLength,enNodeType.Root,null,null,null,null, viewCamera, vectorScale, desiredResolution, minResolution); 
         }
 
         public CQuadTreeNode RefineNodeImpl( 
             float x ,
             float z ,
             int curNodeLength ,   //暂时定为节点的个数
+            enNodeType nodeType ,
+            CQuadTreeNode parentTopNeighborNode ,
+            CQuadTreeNode parentRightNeighborNode ,
+            CQuadTreeNode parentBottomNeighborNode ,
+            CQuadTreeNode parentLeftNeighborNode, 
             Camera viewCamera ,
             Vector3 vectorScale, 
             float desiredResolution,
@@ -605,6 +621,8 @@ namespace Assets.Scripts.QuadTree
                 return null ; 
             }
 
+            qtNode.mNodeType = nodeType; 
+
             //评价公式
             ushort nodeHeight = GetTrueHeightAtPoint(qtNode.mIndexX, qtNode.mIndexZ);
             float fViewDistance = Mathf.Sqrt(
@@ -626,25 +644,65 @@ namespace Assets.Scripts.QuadTree
             //float fDenominator = Mathf.Max(curNodeLength *  vectorScale.x ,1.0f) ; 
             //float f = fViewDistance / fDenominator;
 
-
-            qtNode.mbSubdivide = f < 1.0f ? true : false;  
-            if( qtNode.mbSubdivide )
+            //一个节点是否能够划分
+            //1、满足评价
+            //2、和相邻的结点不相差两个层级，也就当前结点和父结点的兄弟结点不能相差两个层级
+            qtNode.mbSubdivide = f < 1.0f ? true : false;
+            switch (qtNode.mNodeType)
             {
-                //Debug.Log( string.Format("[RefineNode]Subdivide[x:{0}][z:{1}]",qtNode.mIndexX,qtNode.mIndexZ));
+                case enNodeType.TopLeft:
+                    {
+                        qtNode.mbSubdivide &= CanNodeDivide(qtNode, parentTopNeighborNode, parentLeftNeighborNode);
+                        break; 
+                    }
+                case enNodeType.TopRight:
+                    {
+                        qtNode.mbSubdivide &= CanNodeDivide(qtNode, parentTopNeighborNode, parentRightNeighborNode); 
+                        break; 
+                    }
+                case enNodeType.BottomRight:
+                    {
+                        qtNode.mbSubdivide &= CanNodeDivide(qtNode, parentRightNeighborNode, parentBottomNeighborNode); 
+                        break; 
+                    }
+                case enNodeType.BottomLeft:
+                    {
+                        qtNode.mbSubdivide &= CanNodeDivide(qtNode, parentLeftNeighborNode, parentBottomNeighborNode); 
+                        break; 
+                    }
+            }
 
+            //决定是否画顶点的
+            int iNeighborOffset = curNodeLength - 1;
+            int iX = (int)x;
+            int iZ = (int)z;
+
+            int iZBottom = iZ - iNeighborOffset;
+            int iZTop = iZ + iNeighborOffset;
+            int iXLeft = iX - iNeighborOffset;
+            int iXRight = iX + iNeighborOffset;
+
+            CQuadTreeNode bottomNeighborNode = GetNode(iX, iZBottom);
+            CQuadTreeNode rightNeighborNode = GetNode(iXRight, iZ);
+            CQuadTreeNode topNeighborNode = GetNode(iX, iZTop);
+            CQuadTreeNode leftNeighborNode = GetNode(iXLeft, iZ);
+
+
+            if ( qtNode.mbSubdivide )
+            {
                 if( !(curNodeLength <= 3) )
                 {
                     float fChildeNodeOffset = (float)((curNodeLength - 1) >> 2);
                     int tChildNodeLength = (curNodeLength + 1) >> 1;
 
                     //bottom-left
-                    qtNode.mBottomLetfNode = RefineNodeImpl(x - fChildeNodeOffset, z - fChildeNodeOffset, tChildNodeLength, viewCamera,vectorScale, desiredResolution, minResolution);
+                    qtNode.mBottomLetfNode = RefineNodeImpl(x - fChildeNodeOffset, z - fChildeNodeOffset, tChildNodeLength,enNodeType.BottomLeft,topNeighborNode,rightNeighborNode,bottomNeighborNode,leftNeighborNode, viewCamera,vectorScale, desiredResolution, minResolution);
                     //bottom-right
-                    qtNode.mBottomRightNode = RefineNodeImpl(x + fChildeNodeOffset, z - fChildeNodeOffset, tChildNodeLength, viewCamera, vectorScale, desiredResolution, minResolution);
+                    qtNode.mBottomRightNode = RefineNodeImpl(x + fChildeNodeOffset, z - fChildeNodeOffset, tChildNodeLength, enNodeType.BottomRight, topNeighborNode, rightNeighborNode, bottomNeighborNode, leftNeighborNode, viewCamera, vectorScale, desiredResolution, minResolution);
                     //top-left 
-                    qtNode.mTopLeftNode = RefineNodeImpl(x - fChildeNodeOffset, z + fChildeNodeOffset, tChildNodeLength, viewCamera, vectorScale, desiredResolution, minResolution);
+                    qtNode.mTopLeftNode = RefineNodeImpl(x - fChildeNodeOffset, z + fChildeNodeOffset, tChildNodeLength, enNodeType.TopLeft, topNeighborNode, rightNeighborNode, bottomNeighborNode, leftNeighborNode, viewCamera, vectorScale, desiredResolution, minResolution);
                     //top-right
-                    qtNode.mTopRightNode = RefineNodeImpl(x + fChildeNodeOffset, z + fChildeNodeOffset, tChildNodeLength, viewCamera, vectorScale, desiredResolution, minResolution);
+                    qtNode.mTopRightNode = RefineNodeImpl(x + fChildeNodeOffset, z + fChildeNodeOffset, tChildNodeLength, enNodeType.TopRight, topNeighborNode, rightNeighborNode, bottomNeighborNode, leftNeighborNode, viewCamera, vectorScale, desiredResolution, minResolution);
                 }        
             }
 
@@ -840,14 +898,18 @@ namespace Assets.Scripts.QuadTree
 
                     //拆分程度不能相差2
                     //左上子结点
-                    bool bTopLeftChildDivide = CanChildNodeDivide(topLeftChildNode,leftNeighborNode,topNeighborNode);
+                    //bool bTopLeftChildDivide = CanNodeDivide(topLeftChildNode,leftNeighborNode,topNeighborNode);
+                    bool bTopLeftChildDivide = topLeftChildNode != null && topLeftChildNode.mbSubdivide;
                     //右上子结点
-                    bool bTopRightChildDivide = CanChildNodeDivide(topRightChildNode,topNeighborNode,rightNeighborNode);
+                    //bool bTopRightChildDivide = CanNodeDivide(topRightChildNode,topNeighborNode,rightNeighborNode);
+                    bool bTopRightChildDivide = topRightChildNode != null && topRightChildNode.mbSubdivide;
                     //右下
-                    bool bBottomRightChildDivide = CanChildNodeDivide(bottomRightChildNode,bottomNeighborNode,rightNeighborNode);
+                    //bool bBottomRightChildDivide = CanNodeDivide(bottomRightChildNode,bottomNeighborNode,rightNeighborNode);
+                    bool bBottomRightChildDivide = bottomRightChildNode != null && bottomRightChildNode.mbSubdivide;
                     //左下
-                    bool bBottomLeftChildDivide = CanChildNodeDivide(bottomLeftChildNode,bottomNeighborNode,leftNeighborNode);
-                  
+                    //bool bBottomLeftChildDivide = CanNodeDivide(bottomLeftChildNode,bottomNeighborNode,leftNeighborNode);
+                    bool bBottomLeftChildDivide = bottomLeftChildNode != null && bottomLeftChildNode.mbSubdivide; 
+
                     //top right sud divide
                     if ( bTopRightChildDivide )
                     {
