@@ -39,24 +39,15 @@ namespace Assets.Scripts.QuadTree
             TileType = tileType; 
             mTileTexture = texture;
         }
-
-        public bool IsValid()
-        {
-            return mTileTexture != null; 
-        }
-
     }
 
 
 
     
-
-
-
     #endregion 
 
 
-    #region  高度度数据
+    #region  高度图数据
 
     struct stHeightData
     {
@@ -695,10 +686,10 @@ namespace Assets.Scripts.QuadTree
                     float fChildeNodeOffset = (float)((curNodeLength - 1) >> 2);
                     int tChildNodeLength = (curNodeLength + 1) >> 1;
 
-                    //bottom-left
-                    qtNode.mBottomLetfNode = RefineNodeImpl(x - fChildeNodeOffset, z - fChildeNodeOffset, tChildNodeLength,enNodeType.BottomLeft,topNeighborNode,rightNeighborNode,bottomNeighborNode,leftNeighborNode, viewCamera,vectorScale, desiredResolution, minResolution);
                     //bottom-right
                     qtNode.mBottomRightNode = RefineNodeImpl(x + fChildeNodeOffset, z - fChildeNodeOffset, tChildNodeLength, enNodeType.BottomRight, topNeighborNode, rightNeighborNode, bottomNeighborNode, leftNeighborNode, viewCamera, vectorScale, desiredResolution, minResolution);
+                    //bottom-left
+                    qtNode.mBottomLetfNode = RefineNodeImpl(x - fChildeNodeOffset, z - fChildeNodeOffset, tChildNodeLength, enNodeType.BottomLeft, topNeighborNode, rightNeighborNode, bottomNeighborNode, leftNeighborNode, viewCamera, vectorScale, desiredResolution, minResolution);
                     //top-left 
                     qtNode.mTopLeftNode = RefineNodeImpl(x - fChildeNodeOffset, z + fChildeNodeOffset, tChildNodeLength, enNodeType.TopLeft, topNeighborNode, rightNeighborNode, bottomNeighborNode, leftNeighborNode, viewCamera, vectorScale, desiredResolution, minResolution);
                     //top-right
@@ -944,6 +935,9 @@ namespace Assets.Scripts.QuadTree
                         //子结点一个都不分割
                         case enNodeTriFanType.No_Fan:
                             {
+                                //bottom right 
+                                RenderNode(fChildRightX, fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
+
                                 //bottom left 
                                 RenderNode( fChildLeftX ,fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
 
@@ -953,9 +947,6 @@ namespace Assets.Scripts.QuadTree
                                 //top right 
                                 RenderNode(fChildRightX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
 
-                                //bottom right 
-                                RenderNode(fChildRightX,fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
-
                                 break;
                             }
                         #endregion
@@ -964,14 +955,13 @@ namespace Assets.Scripts.QuadTree
                         //左上右下分割，左下右上画三角形
                         case enNodeTriFanType.BottomLeft_TopRight:
                             {
-
                                 tFanGenerator.DrawFan(ref meshData, enFanPosition.Two);
                                 tFanGenerator.DrawFan(ref meshData, enFanPosition.Eight);
 
+                                //bottom right 
+                                RenderNode(fChildRightX, fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
                                 //top left 
                                 RenderNode(fChildLeftX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
-                                //bottom right 
-                                RenderNode(fChildRightX,fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
 
                                 break;
                             }
@@ -983,11 +973,11 @@ namespace Assets.Scripts.QuadTree
                                 tFanGenerator.DrawFan(ref meshData, enFanPosition.One);
                                 tFanGenerator.DrawFan(ref meshData, enFanPosition.Four);
 
-                                //top right 
-                                RenderNode(fX + fChildHalfLength, fZ + fChildHalfLength, tChildNodeLength, ref meshData, vectorScale);
                                 //bottom left 
                                 RenderNode(fX - fChildHalfLength, fZ - fChildHalfLength, tChildNodeLength, ref meshData, vectorScale);
-
+                                //top right 
+                                RenderNode(fX + fChildHalfLength, fZ + fChildHalfLength, tChildNodeLength, ref meshData, vectorScale);
+                              
                                 break;
                             }
 
@@ -1092,12 +1082,10 @@ namespace Assets.Scripts.QuadTree
                             {
                                 tFanGenerator.DrawFan(ref meshData, enFanPosition.Eight);
 
-                                //bottom left 
-                                RenderNode(fChildLeftX, fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
-
                                 //bottom right 
                                 RenderNode(fChildRightX, fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
-
+                                //bottom left 
+                                RenderNode(fChildLeftX, fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
                                 //top left 
                                 RenderNode(fChildLeftX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
 
@@ -1139,15 +1127,12 @@ namespace Assets.Scripts.QuadTree
                         case enNodeTriFanType.TopLeft:
                             {
                                 tFanGenerator.DrawFan(ref meshData, enFanPosition.Four);
-
-                                //top right 
-                                RenderNode(fChildRightX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
-
                                 //bottom right 
                                 RenderNode(fChildRightX, fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
-
                                 //bottom left 
                                 RenderNode(fChildLeftX, fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
+                                //top right 
+                                RenderNode(fChildRightX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
 
                                 break; 
                             }
@@ -1162,7 +1147,6 @@ namespace Assets.Scripts.QuadTree
 
                                 //top left 
                                 RenderNode(fChildLeftX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
-
                                 //top right 
                                 RenderNode(fChildRightX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
 
@@ -1196,10 +1180,8 @@ namespace Assets.Scripts.QuadTree
                                 tFanGenerator.DrawFan(ref meshData, enFanPosition.One);
                                 //bottom left 
                                 RenderNode(fChildLeftX, fChildBottomZ, tChildNodeLength, ref meshData, vectorScale);
-
                                 //top left 
                                 RenderNode(fChildLeftX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
-
                                 //top right 
                                 RenderNode(fChildRightX, fChildTopZ, tChildNodeLength, ref meshData, vectorScale);
 
