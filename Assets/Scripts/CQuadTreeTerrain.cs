@@ -577,7 +577,6 @@ namespace Assets.Scripts.QuadTree
              float minResolution
              )
         {
-            //ResetNodeSubdivide(); 
             return RefineNodeImpl(x, z, curNodeLength,enNodeType.Root,null,null,null,null, viewCamera, vectorScale, desiredResolution, minResolution); 
         }
 
@@ -622,18 +621,19 @@ namespace Assets.Scripts.QuadTree
                 Mathf.Pow(viewCamera.transform.position.z - qtNode.mIndexZ * vectorScale.z, 2)
                   );
 
-            //float fViewDistance = (float)(
-            //      Mathf.Abs(viewCamera.transform.position.x - qtNode.mIndexX * vectorScale.x) +
-            //      Mathf.Abs(viewCamera.transform.position.y - nodeHeight * vectorScale.y) +
-            //      Mathf.Abs(viewCamera.transform.position.z - qtNode.mIndexZ * vectorScale.z)
-            //     );
+            //1、没有高度的话，单纯就判断水平上的距离来判断是否拆分
+            //2、有高度的话，
+            //float fDenominator = vectorScale.y == 0 ?
+            //    Mathf.Max(curNodeLength * vectorScale.x * minResolution, 1.0f) :
+            //    (curNodeLength * minResolution * Mathf.Max(desiredResolution * nodeHeight / 3, 1.0f));
+            //float f = fViewDistance / fDenominator;
 
-
-            float fDenominator = (curNodeLength * minResolution * Mathf.Max(desiredResolution * nodeHeight / 3, 1.0f));
+            float fDenominator = vectorScale.y == 0 ?
+                (Mathf.Max(curNodeLength * vectorScale.x * Mathf.Min(minResolution,desiredResolution), 1.0f)) :
+                (curNodeLength * vectorScale.x * Mathf.Max(Mathf.Min(minResolution, desiredResolution),1.0f)) ;
             float f = fViewDistance / fDenominator;
 
-            //float fDenominator = Mathf.Max(curNodeLength *  vectorScale.x ,1.0f) ; 
-            //float f = fViewDistance / fDenominator;
+
 
             //一个节点是否能够划分
             //1、满足评价
@@ -644,22 +644,22 @@ namespace Assets.Scripts.QuadTree
                 case enNodeType.TopLeft:
                     {
                         qtNode.mbSubdivide &= CanNodeDivide(qtNode, parentTopNeighborNode, parentLeftNeighborNode);
-                        break; 
+                        break;
                     }
                 case enNodeType.TopRight:
                     {
-                        qtNode.mbSubdivide &= CanNodeDivide(qtNode, parentTopNeighborNode, parentRightNeighborNode); 
-                        break; 
+                        qtNode.mbSubdivide &= CanNodeDivide(qtNode, parentTopNeighborNode, parentRightNeighborNode);
+                        break;
                     }
                 case enNodeType.BottomRight:
                     {
-                        qtNode.mbSubdivide &= CanNodeDivide(qtNode, parentRightNeighborNode, parentBottomNeighborNode); 
-                        break; 
+                        qtNode.mbSubdivide &= CanNodeDivide(qtNode, parentRightNeighborNode, parentBottomNeighborNode);
+                        break;
                     }
                 case enNodeType.BottomLeft:
                     {
-                        qtNode.mbSubdivide &= CanNodeDivide(qtNode, parentLeftNeighborNode, parentBottomNeighborNode); 
-                        break; 
+                        qtNode.mbSubdivide &= CanNodeDivide(qtNode, parentLeftNeighborNode, parentBottomNeighborNode);
+                        break;
                     }
             }
 
