@@ -18,10 +18,9 @@
  
  4.加入光照、阴影。
  
-#### 来张平面的Gif
-![平面Gif](http://wx1.sinaimg.cn/mw690/6b98bc8agy1flq5orfbx5g20fk0be1l0.gif)
+#### 效果Gif
+![效果Gif](http://wx3.sinaimg.cn/mw690/6b98bc8agy1flt2fqpnqtg20fk06o4ja.gif)
  
-#### 按所有高度顶点画
-![普通模式Texture](http://wx4.sinaimg.cn/mw690/6b98bc8agy1flq5nrnfdgg20fk0h2hdu.gif)
+
 
 
