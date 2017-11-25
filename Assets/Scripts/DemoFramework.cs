@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Assets.Scripts.QuadTree;
+using Assets.Scripts.Common; 
 
 
 public class DemoFramework : MonoBehaviour {

@@ -2,108 +2,10 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Assets.Scripts.Utility;
-using System.IO;
-using UnityEditor;
+using Assets.Scripts.Common;
 
 namespace Assets.Scripts.QuadTree
 {
-
-
-    #region 纹理数据 
-
-    public enum enTileTypes
-    {
-        lowest_tile = 0 , 
-        low_tile = 1 , 
-        high_tile = 2 , 
-        highest_tile = 3 , 
-        max_tile = 4 ,
-    }
-
-    public class CTerrainTile
-    {
-        public int lowHeight;
-        public int optimalHeight;
-        public int highHeight;
-        public enTileTypes TileType; 
-
-        public Texture2D mTileTexture; 
-
-
-        public CTerrainTile( enTileTypes tileType, Texture2D texture )
-        {
-            lowHeight = 0;
-            optimalHeight = 0;
-            highHeight = 0;
-
-            TileType = tileType; 
-            mTileTexture = texture;
-        }
-    }
-
-
-
-    
-    #endregion 
-
-
-    #region  高度图数据
-
-    struct stHeightData
-    {
-        private ushort[,] mHeightData;
-        public int mSize;
-        
-        public bool IsValid()
-        {
-            return mHeightData != null; 
-        }    
-        
-        public void Release()
-        {
-            mHeightData = null;
-            mSize = 0; 
-        }   
-
-
-        public void Allocate( int mapSize )
-        {
-            if( mapSize > 0 )
-            {
-                mHeightData = new ushort[mapSize,mapSize];
-                mSize = mapSize; 
-            }
-        }
-
-        public void SetHeightValue(ushort value , int x,int y)
-        {
-            if( IsValid() && InRange(x,y) )
-            {
-                mHeightData[x, y] = value;
-            }
-        }
-
-        public ushort GetRawHeightValue( int x, int y )
-        {
-            ushort ret = 0;
-            if( IsValid() && InRange(x,y))
-            {
-                ret = mHeightData[x, y]; 
-            }
-            return ret; 
-        }
-
-   
-
-
-        private bool InRange( int x ,int y )
-        {
-            return x >= 0 && x < mSize && y >= 0 && y < mSize; 
-        }
-    }
-
-    #endregion
-
 
     #region 结点定义 
 
@@ -115,11 +17,11 @@ namespace Assets.Scripts.QuadTree
         public CQuadTreeNode mBottomLetfNode;
 
         public bool mbSubdivide;
-        public int mIndexX ;
-        public int mIndexZ ;
-        public enNodeType mNodeType; 
+        public int mIndexX;
+        public int mIndexZ;
+        public enNodeType mNodeType;
 
-        public CQuadTreeNode( int x ,int z )
+        public CQuadTreeNode(int x, int z)
         {
             mIndexX = x;
             mIndexZ = z;
@@ -127,13 +29,12 @@ namespace Assets.Scripts.QuadTree
         }
     }
 
-
     enum enNodeTriFanType
     {
-        Complete_Fan = 0 , //全部划三角形
-        BottomLeft_TopLeft_TopRight = 1 ,
-        TopLeft_TopRight_BottomRight = 2 ,
-        TopLeft_TopRight = 3 ,
+        Complete_Fan = 0, //全部划三角形
+        BottomLeft_TopLeft_TopRight = 1,
+        TopLeft_TopRight_BottomRight = 2,
+        TopLeft_TopRight = 3,
         TopRight_BottomRight_BottomLeft = 4,
         BottomLeft_TopRight = 5,
         TopRight_BottomRight = 6,
@@ -152,21 +53,21 @@ namespace Assets.Scripts.QuadTree
     //哪个位置的三角形
     enum enFanPosition
     {
-        One = 1 ,
-        Two = 2 ,
-        Four = 4 ,
-        Eight = 8 ,
+        One = 1,
+        Two = 2,
+        Four = 4,
+        Eight = 8,
     }
 
 
     //节点的位置
     enum enNodeType
     {
-        Root = 0 ,
-        BottomRight =1  ,
-        BottomLeft = 2 , 
-        TopLeft = 4 ,
-        TopRight = 8  ,
+        Root = 0,
+        BottomRight = 1,
+        BottomLeft = 2,
+        TopLeft = 4,
+        TopRight = 8,
     }
 
 
@@ -175,7 +76,7 @@ namespace Assets.Scripts.QuadTree
     {
         private bool mbDrawLeftMid;
         private bool mbDrawTopMid;
-        private bool mbDrawRightMid; 
+        private bool mbDrawRightMid;
         private bool mbDrawBottomMid;
 
         private stVertexAtrribute mCenterVertex;
@@ -186,22 +87,22 @@ namespace Assets.Scripts.QuadTree
         private stVertexAtrribute mTopRightVertex;
         private stVertexAtrribute mRightMidVertex;
         private stVertexAtrribute mBottomRightVertex;
-        private stVertexAtrribute mBottomMidVertex; 
+        private stVertexAtrribute mBottomMidVertex;
 
 
         public stFanGenerator(
-            bool drawLeftMid ,
+            bool drawLeftMid,
             bool drawTopMid,
             bool drawRightMid,
             bool drawBottomMid,
             stVertexAtrribute centerVertex,
             stVertexAtrribute bottomLeftVertex,
-            stVertexAtrribute leftMidVertex ,
-            stVertexAtrribute topLeftVertex ,
-            stVertexAtrribute topMidVertex ,
-            stVertexAtrribute topRightVertex ,
-            stVertexAtrribute rightMidVertex ,
-            stVertexAtrribute bottomRightVertex ,
+            stVertexAtrribute leftMidVertex,
+            stVertexAtrribute topLeftVertex,
+            stVertexAtrribute topMidVertex,
+            stVertexAtrribute topRightVertex,
+            stVertexAtrribute rightMidVertex,
+            stVertexAtrribute bottomRightVertex,
             stVertexAtrribute bottomMidVertex
             )
         {
@@ -218,20 +119,20 @@ namespace Assets.Scripts.QuadTree
             mTopRightVertex = topRightVertex;
             mRightMidVertex = rightMidVertex;
             mBottomRightVertex = bottomRightVertex;
-            mBottomMidVertex = bottomMidVertex; 
+            mBottomMidVertex = bottomMidVertex;
         }
 
 
-        public void DrawFan( ref stTerrainMeshData meshData , enFanPosition fanPos )
+        public void DrawFan(ref stTerrainMeshData meshData, enFanPosition fanPos)
         {
-            switch (  fanPos )
+            switch (fanPos)
             {
                 #region Draw 1
                 case enFanPosition.One:
                     {
                         ///////////////////////Draw 1 ////////////////////////
                         //Bottom Right 2 Triangle
-                        if (mbDrawRightMid  && mbDrawBottomMid)
+                        if (mbDrawRightMid && mbDrawBottomMid)
                         {
                             ///1 center  right mid  bottom right 
                             meshData.RenderTriangle(mCenterVertex, mRightMidVertex, mBottomRightVertex);
@@ -255,7 +156,7 @@ namespace Assets.Scripts.QuadTree
                         else
                         {
                             meshData.RenderTriangle(mCenterVertex, mTopRightVertex, mBottomRightVertex);
-                            meshData.RenderTriangle(mCenterVertex, mBottomRightVertex, mBottomLeftVertex); 
+                            meshData.RenderTriangle(mCenterVertex, mBottomRightVertex, mBottomLeftVertex);
                         }
 
                         /////////////////////Draw 1 ////////////////////////////////
@@ -267,7 +168,7 @@ namespace Assets.Scripts.QuadTree
                 #region Draw 2
                 case enFanPosition.Two:
                     {
-                  
+
                         ///////////////// Draw 2 ////////////////////////
                         //Bottom Left 2 Triangle
                         if (mbDrawLeftMid && mbDrawBottomMid)
@@ -343,9 +244,9 @@ namespace Assets.Scripts.QuadTree
 
                         break;
                     }
-                    #endregion
+                #endregion
 
-                    #region Draw 8
+                #region Draw 8
                 case enFanPosition.Eight:
                     {
                         //Top Right  Triangle 
@@ -377,7 +278,7 @@ namespace Assets.Scripts.QuadTree
                             // 2 center top right bottom right
                             meshData.RenderTriangle(mCenterVertex, mTopRightVertex, mBottomRightVertex);
                         }
-                        break; 
+                        break;
                     }
 
                     #endregion
@@ -389,112 +290,10 @@ namespace Assets.Scripts.QuadTree
     }
 
 
-    struct stVertexAtrribute
-    {
-        public Vector3 mVertice;
-        public Vector2 mUV;
-        public int mVerticeIdx; 
-
-        public stVertexAtrribute(int vertexIdx, Vector3 vertex , Vector2 uv)
-        {
-            mVerticeIdx = vertexIdx;
-            mVertice = vertex;
-            mUV = uv; 
-        }
-
-        public stVertexAtrribute Clone()
-        {
-            return new stVertexAtrribute(mVerticeIdx, mVertice, mUV); 
-        }
-
-    }
-
-
-
-    struct stTerrainMeshData
-    {
-        public Mesh mMesh;
-        public Vector3[] mVertices;
-        public Vector2[] mUV;
-        public Vector3[] mNormals; 
-        public int[] mTriangles;
-
-
-        private int mTriIdx;
-          
-
-        public void RenderVertex(
-            int idx , 
-            Vector3 vertex,
-            Vector3 uv
-            )
-        {
-            mVertices[idx] = vertex;
-            mUV[idx] = uv;
-            mTriangles[mTriIdx++] = idx;             
-        }
-
-
-        public void RenderTriangle( 
-            stVertexAtrribute a ,
-            stVertexAtrribute b ,
-            stVertexAtrribute c
-                        )
-        {
-            RenderVertex(a.mVerticeIdx,a.mVertice,a.mUV);
-            RenderVertex(b.mVerticeIdx,b.mVertice,b.mUV);
-            RenderVertex(c.mVerticeIdx,c.mVertice,c.mUV);
-        }
-
-
-        public void Present()
-        {
-            if( mMesh != null )
-            {
-                mMesh.vertices = mVertices;
-                mMesh.uv = mUV;
-                mMesh.triangles = mTriangles;
-                mMesh.normals = mNormals; 
-            }
-        }
-
-
-        public void Reset()
-        {
-            if( mVertices != null )
-            {
-                for (int i = 0; i < mVertices.Length; ++i)
-                {
-                    mVertices[i].x = mVertices[i].y = mVertices[i].z = 0; 
-                    if( mUV != null )
-                    {
-                        mUV[i].x = mUV[i].y = 0; 
-                    }
-                    if( mNormals != null )
-                    {
-                        mNormals[i].x = mNormals[i].y = 0; 
-                    }
-                }
-            }
-
-            mTriIdx = 0;
-            if ( mTriangles != null )
-            {
-                for( int i = 0; i < mTriangles.Length; ++i)
-                {
-                    mTriangles[i] = 0; 
-                }
-            }
-           
-        }
-
-    }
-
 
 
 
     #endregion
-
 
 
     class CQuadTreeTerrain
