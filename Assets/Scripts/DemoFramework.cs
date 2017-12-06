@@ -18,6 +18,13 @@ public class DemoFramework : MonoBehaviour {
 
     public bool renderQuadTreeCLOD = false;
 
+    #region Gizmos
+    public bool drawGizmos = false;
+    public float gizmosScale = 10f;
+    public Color gizmosColor = Color.green;
+    #endregion
+
+
     //摄像机对象
     public GameObject cameraGo;
     public Camera renderCamera;
@@ -193,6 +200,10 @@ public class DemoFramework : MonoBehaviour {
             {
                 renderQuadTreeCLOD = !renderQuadTreeCLOD; 
             }
+            if (Input.GetKeyDown(KeyCode.G))
+            {
+                drawGizmos = !drawGizmos;
+            }
         }
     }
 
@@ -282,6 +293,17 @@ public class DemoFramework : MonoBehaviour {
         Profiler.BeginSample("DemoRender"); 
         DemoRender();
         Profiler.EndSample(); 
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (mQuadTreeTerrain != null
+            && drawGizmos)
+        {
+            Profiler.BeginSample("DrawGizmos");
+            mQuadTreeTerrain.DrawGizoms(ref mMeshData, vertexScale, gizmosScale, gizmosColor);
+            Profiler.EndSample();
+        }
     }
 
 }

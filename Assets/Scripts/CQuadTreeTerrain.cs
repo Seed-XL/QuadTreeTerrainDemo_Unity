@@ -505,8 +505,31 @@ namespace Assets.Scripts.QuadTree
 
 
         #region  将模型渲染上去
-     
-        
+
+
+        public void DrawGizoms(ref stTerrainMeshData meshData , Vector3 vertexScale, float gizmosScale, Color gizmosColor)
+        {
+            Gizmos.color = gizmosColor;
+
+            Mesh mesh = meshData.mMesh;
+            if (null == mesh)
+            {
+                Debug.LogError("Terrain without Mesh");
+                return;
+            }
+
+            meshData.Reset();
+
+            for (int z = 0; z < mHeightData.mSize; ++z)
+            {
+                for (int x = 0; x < mHeightData.mSize; ++x)
+                {
+                    float y = mHeightData.GetRawHeightValue(x, z);
+                    Gizmos.DrawSphere(new Vector3(x * vertexScale.x, y * vertexScale.y, z * vertexScale.z),gizmosScale);
+                    
+                }
+            }
+        }
 
 
         public void CLOD_Render( ref stTerrainMeshData meshData , Vector3 vertexScale )
