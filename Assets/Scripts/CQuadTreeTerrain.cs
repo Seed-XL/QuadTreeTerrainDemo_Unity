@@ -346,16 +346,17 @@ namespace Assets.Scripts.QuadTree
         }
 
 
+        //如果当前结点需要拆分，但是如果 既是父结点，也是当前结点的邻结点不拆分的话，那当前结点也不能够，不然的话，会出现裂缝
         private bool CanNodeDivide( CQuadTreeNode childNode , CQuadTreeNode parentANeighborNode , CQuadTreeNode parentBNeighborNode )
         {
             bool bRet = false;
             if(  childNode != null  )
             {
-                bRet = childNode.mbSubdivide; 
+                bRet = childNode.mbSubdivide;  
 
                 if( parentANeighborNode != null )
                 {
-                    bRet &= parentANeighborNode.mbSubdivide;
+                    bRet &= parentANeighborNode.mbSubdivide;  //还要看看紧贴的结点是否也要拆
                 }
                 if( parentBNeighborNode != null )
                 {
@@ -366,6 +367,106 @@ namespace Assets.Scripts.QuadTree
         }
 
 
+        public void PropagateRoughness(float minResolution, float desResolution)
+        {
+            //先重置一波
+            mRoughnessData.Reset(0);
+
+            int iCurNodeLength = 3;  //最小结点
+            while (iCurNodeLength <= mHeightData.mSize)
+            {
+                int iHalfLengthOffset = (iCurNodeLength - 1) >> 1;   //半个结点长度，用来求出相邻结点
+                int iChildHalfLengthOffset = (iCurNodeLength - 1) >> 2; //半个子结点的长度，用来求出相邻子结点
+
+                for (int z = iHalfLengthOffset; z < mHeightData.mSize; z += (iCurNodeLength - 1))
+                {
+                    for (int x = iHalfLengthOffset; x < mHeightData.mSize; x += (iCurNodeLength - 1))
+                    {
+                        int xLeftCur = x - iHalfLengthOffset;
+                        int zBottomCur = z - iHalfLengthOffset;
+                        int xRightCur = x + iHalfLengthOffset;
+                        int zTopCur = z + iHalfLengthOffset;
+
+                        int xLeftChild = x - iChildHalfLengthOffset;
+                        int xRightChild = x + iChildHalfLengthOffset;
+                        int zTopChild = z + iChildHalfLengthOffset;
+                        int zBottomChild = z - iChildHalfLengthOffset;
+
+                        int topLeftHeight = mHeightData.GetRawHeightValue(xLeftCur, zTopCur);
+                        int topRightHeight = mHeightData.GetRawHeightValue(xRightCur, zTopCur);
+                        int bottomLeftHeight = mHeightData.GetRawHeightValue(xLeftCur, zBottomCur);
+                        int bottomRightHeight = mHeightData.GetRawHeightValue(xRightCur, zBottomCur);
+                        int topMidHeight = mHeightData.GetRawHeightValue(x, zTopCur);
+                        int rightMidHeight = mHeightData.GetRawHeightValue(xRightCur, z);
+                        int bottomMidHeight = mHeightData.GetRawHeightValue(x, zBottomCur);
+                        int leftMidHeight = mHeightData.GetRawHeightValue(xLeftCur, z);
+                        int centerHeight = mHeightData.GetRawHeightValue(x, z);
+
+                        float topMidHeightDiff = Mathf.Abs(((float)(topLeftHeight + topRightHeight) / 2.0f) - topMidHeight);
+                        float rightMidHeightDiff = Mathf.Abs(((float)(topRightHeight + bottomRightHeight) /2.0f) - rightMidHeight);
+                        float bottomMidHeightDiff = Mathf.Abs(((float)(bottomLeftHeight + bottomRightHeight) / 2.0f) - bottomMidHeight);
+                        float leftMidHeightDiff = Mathf.Abs(((float)(topLeftHeight + bottomLeftHeight) / 2.0f) - leftMidHeight);
+                        float bottomLeft2TopRightHeightDiff = Mathf.Abs(((float)(bottomLeftHeight + topRightHeight)  / 2.0f) - centerHeight);
+                        float bottomRight2TopLeftHeightDiff = Mathf.Abs(((float)(bottomRightHeight + topLeftHeight) / 2.0f) - centerHeight);
+
+                        //取出最大的差值 
+                        float maxHeightDiff = Mathf.Max(leftMidHeightDiff, topMidHeightDiff, rightMidHeightDiff, bottomMidHeightDiff, bottomLeft2TopRightHeightDiff, bottomRight2TopLeftHeightDiff);
+
+                        float localD2 = maxHeightDiff / iCurNodeLength ;  //根据论文的公式 d2 =  d2Max / d 
+                        if( iCurNodeLength != 3 ) //如果不是叶子结点
+                        {
+                            //论文的公式： K = C / (2C - 1)，上边界
+                            float fKupperBound = minResolution / (2.0f * (minResolution - 1));
+
+                            //这里也是根据论文的内容 
+                            //The d2-value of each block is the maximum
+                            //of the local value and K times the previously
+                            //calculated values of adjacent blocks at the next lower
+                            //level.
+                         
+                            //上一个Lod计算出来的D2值
+                            float fLeftChildMidD2 = mRoughnessData.GetRoughnessValue(xLeftChild, z) * fKupperBound;
+                            float fRightChildMidD2 = mRoughnessData.GetRoughnessValue(xRightChild, z) * fKupperBound;
+                            float fTopChildMidD2 = mRoughnessData.GetRoughnessValue(x, zTopChild) * fKupperBound;
+                            float fBottomChildMidD2 = mRoughnessData.GetRoughnessValue(x, zBottomChild) * fKupperBound;
+
+                            //取出最大值
+                            localD2 = (int)Mathf.Max(
+                                localD2,
+                                fLeftChildMidD2,
+                                fRightChildMidD2,
+                                fTopChildMidD2,
+                                fBottomChildMidD2
+                                );
+                        }  // else 
+
+
+                        float tCenterD2 = mRoughnessData.GetRoughnessValue(x, z);
+                        localD2 = Mathf.Max(tCenterD2, localD2); 
+                        mRoughnessData.SetRoughnessValue(localD2, x, z);
+                   
+                        //推荐的四个的D2值
+                        float bottomLeftD2 = Mathf.Max(mRoughnessData.GetRoughnessValue(xLeftCur, zBottomCur), localD2);
+                        float topLeftD2 = Mathf.Max(mRoughnessData.GetRoughnessValue(xLeftCur, zTopCur), localD2);
+                        float topRightD2 = Mathf.Max(mRoughnessData.GetRoughnessValue(xRightCur, zTopCur), localD2);
+                        float bottomRightD2 = Mathf.Max(mRoughnessData.GetRoughnessValue(xRightCur, zBottomCur), localD2);
+
+
+                        //传递到四个顶点，其实不太明白这样的做的原因
+                        mRoughnessData.SetRoughnessValue(bottomLeftD2, xLeftCur, zBottomCur);
+                        mRoughnessData.SetRoughnessValue(topLeftD2, xLeftCur, zTopCur);
+                        mRoughnessData.SetRoughnessValue(topRightD2, xRightCur, zTopCur);
+                        mRoughnessData.SetRoughnessValue(bottomRightD2, xRightCur, zBottomCur);
+
+                    }  // for 
+                }  // for 
+
+                iCurNodeLength = (iCurNodeLength << 1) - 1;
+
+            }  //while 
+        }  //function
+
+
         public CQuadTreeNode RefineNode(
              float x,
              float z,
@@ -373,10 +474,19 @@ namespace Assets.Scripts.QuadTree
              Camera viewCamera,
              Vector3 vectorScale,
              float desiredResolution,
-             float minResolution
+             float minResolution,
+             bool useRoughnessEvalute 
              )
         {
-            return RefineNodeImpl(x, z, curNodeLength,enNodeType.Root,null,null,null,null, viewCamera, vectorScale, desiredResolution, minResolution); 
+            //这个其实只要运行一次就够了，但是为了可以演示的时候运行调整，放在每次更新的时候了
+            Profiler.BeginSample("QuadTree.PropagateRoughness");
+            if ( useRoughnessEvalute )
+            {
+                PropagateRoughness(minResolution, desiredResolution); 
+            }
+            Profiler.EndSample(); 
+
+            return RefineNodeImpl(x, z, curNodeLength, enNodeType.Root, null, null, null, null, viewCamera, vectorScale, desiredResolution, minResolution,useRoughnessEvalute);
         }
 
         public CQuadTreeNode RefineNodeImpl( 
@@ -391,7 +501,8 @@ namespace Assets.Scripts.QuadTree
             Camera viewCamera ,
             Vector3 vectorScale, 
             float desiredResolution,
-            float minResolution
+            float minResolution,
+            bool useRoughnessEvalute 
             )
         {
             if( null == viewCamera )
@@ -420,20 +531,37 @@ namespace Assets.Scripts.QuadTree
                 Mathf.Pow(viewCamera.transform.position.z - qtNode.mIndexZ * vectorScale.z, 2)
                   );
 
+           
             //1、没有高度的话，单纯就判断水平上的距离来判断是否拆分
             //2、有高度的话，
             //float fDenominator = vectorScale.y == 0 ?
             //    Mathf.Max(curNodeLength * vectorScale.x * minResolution, 1.0f) :
             //    (curNodeLength * minResolution * Mathf.Max(desiredResolution * nodeHeight / 3, 1.0f));
             //float f = fViewDistance / fDenominator;
+            float f = 0; 
+            if(useRoughnessEvalute)
+            {
+                float d = (curNodeLength - 1) * vectorScale.x;
+                float d2 = mRoughnessData.GetRoughnessValue(tX, tZ);
+                float C = minResolution;
+                float c = desiredResolution; 
+                float fDenominator = vectorScale.y == 0 ?
+                   (Mathf.Max(d * Mathf.Max(c, C), 1.0f)) :
+                   (d * C * Mathf.Max( c * d2  , 1.0f) );
+                f = fViewDistance / fDenominator; 
+            }
+            else
+            {
+                // l / dc < 1
+                float d = ( curNodeLength - 1 ) * vectorScale.x;
+                float C = Mathf.Max(minResolution, desiredResolution);
 
-            float fDenominator = vectorScale.y == 0 ?
-                (Mathf.Max(curNodeLength * vectorScale.x * Mathf.Min(minResolution,desiredResolution), 1.0f)) :
-                (curNodeLength * vectorScale.x * Mathf.Max(Mathf.Min(minResolution, desiredResolution),1.0f)) ;
-            float f = fViewDistance / fDenominator;
+                float fDenominator = Mathf.Max(d * C, 1.0f) ;
+                f = fViewDistance / fDenominator;
+            }
 
 
-
+            //这个其实是补丁，原本的算法没有的，这里作用是如果预处理之后，还是发生了crack的情况，就强行拆面
             //一个节点是否能够划分
             //1、满足评价
             //2、和相邻的结点不相差两个层级，也就当前结点和父结点的兄弟结点不能相差两个层级
@@ -486,13 +614,13 @@ namespace Assets.Scripts.QuadTree
                     int tChildNodeLength = (curNodeLength + 1) >> 1;
 
                     //bottom-right
-                    qtNode.mBottomRightNode = RefineNodeImpl(x + fChildeNodeOffset, z - fChildeNodeOffset, tChildNodeLength, enNodeType.BottomRight, topNeighborNode, rightNeighborNode, bottomNeighborNode, leftNeighborNode, viewCamera, vectorScale, desiredResolution, minResolution);
+                    qtNode.mBottomRightNode = RefineNodeImpl(x + fChildeNodeOffset, z - fChildeNodeOffset, tChildNodeLength, enNodeType.BottomRight, topNeighborNode, rightNeighborNode, bottomNeighborNode, leftNeighborNode, viewCamera, vectorScale, desiredResolution, minResolution , useRoughnessEvalute);
                     //bottom-left
-                    qtNode.mBottomLetfNode = RefineNodeImpl(x - fChildeNodeOffset, z - fChildeNodeOffset, tChildNodeLength, enNodeType.BottomLeft, topNeighborNode, rightNeighborNode, bottomNeighborNode, leftNeighborNode, viewCamera, vectorScale, desiredResolution, minResolution);
+                    qtNode.mBottomLetfNode = RefineNodeImpl(x - fChildeNodeOffset, z - fChildeNodeOffset, tChildNodeLength, enNodeType.BottomLeft, topNeighborNode, rightNeighborNode, bottomNeighborNode, leftNeighborNode, viewCamera, vectorScale, desiredResolution, minResolution, useRoughnessEvalute);
                     //top-left 
-                    qtNode.mTopLeftNode = RefineNodeImpl(x - fChildeNodeOffset, z + fChildeNodeOffset, tChildNodeLength, enNodeType.TopLeft, topNeighborNode, rightNeighborNode, bottomNeighborNode, leftNeighborNode, viewCamera, vectorScale, desiredResolution, minResolution);
+                    qtNode.mTopLeftNode = RefineNodeImpl(x - fChildeNodeOffset, z + fChildeNodeOffset, tChildNodeLength, enNodeType.TopLeft, topNeighborNode, rightNeighborNode, bottomNeighborNode, leftNeighborNode, viewCamera, vectorScale, desiredResolution, minResolution, useRoughnessEvalute);
                     //top-right
-                    qtNode.mTopRightNode = RefineNodeImpl(x + fChildeNodeOffset, z + fChildeNodeOffset, tChildNodeLength, enNodeType.TopRight, topNeighborNode, rightNeighborNode, bottomNeighborNode, leftNeighborNode, viewCamera, vectorScale, desiredResolution, minResolution);
+                    qtNode.mTopRightNode = RefineNodeImpl(x + fChildeNodeOffset, z + fChildeNodeOffset, tChildNodeLength, enNodeType.TopRight, topNeighborNode, rightNeighborNode, bottomNeighborNode, leftNeighborNode, viewCamera, vectorScale, desiredResolution, minResolution, useRoughnessEvalute);
                 }        
             }
 
@@ -526,7 +654,6 @@ namespace Assets.Scripts.QuadTree
                 {
                     float y = mHeightData.GetRawHeightValue(x, z);
                     Gizmos.DrawSphere(new Vector3(x * vertexScale.x, y * vertexScale.y, z * vertexScale.z),gizmosScale);
-                    
                 }
             }
         }
@@ -1691,7 +1818,16 @@ namespace Assets.Scripts.QuadTree
 
         #endregion
 
+        #region 粗糙度传播
+        private stRoughnessData mRoughnessData;
 
+        public void MakeRounessData(int size)
+        {
+            mRoughnessData.Allocate(size);
+        }
+
+
+        #endregion
 
     }
 }

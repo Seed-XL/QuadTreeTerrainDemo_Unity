@@ -17,6 +17,7 @@ public class DemoFramework : MonoBehaviour {
 
 
     public bool renderQuadTreeCLOD = false;
+	public bool useRounghnessEvaluate = false; 
 
     #region Gizmos
     public bool drawGizmos = false;
@@ -92,6 +93,7 @@ public class DemoFramework : MonoBehaviour {
         mQuadTreeTerrain.GenerateNodes(heightSize); 
         //制造高度图
         mQuadTreeTerrain.MakeTerrainFault(heightSize, iterations, (ushort)minHeightValue, (ushort)maxHeightValue, filter);
+        mQuadTreeTerrain.MakeRounessData(heightSize); 
 
         //设置对应的纹理块
         AddTile(enTileTypes.lowest_tile);
@@ -204,6 +206,10 @@ public class DemoFramework : MonoBehaviour {
             {
                 drawGizmos = !drawGizmos;
             }
+			if( Input.GetKeyDown(KeyCode.R))
+            {
+                useRounghnessEvaluate = !useRounghnessEvaluate; 
+            }
         }
     }
 
@@ -222,7 +228,7 @@ public class DemoFramework : MonoBehaviour {
             {
                 Profiler.BeginSample("QuadTree.FirstRefineNode");
                 float fCenter = (heightSize - 1) >> 1;
-                mQuadTreeTerrain.RefineNode(fCenter, fCenter, heightSize, renderCamera, vertexScale, desiredResolution, minResolution);
+                mQuadTreeTerrain.RefineNode(fCenter, fCenter, heightSize, renderCamera, vertexScale, desiredResolution, minResolution , useRounghnessEvaluate);
                 Profiler.EndSample();
 
                 Profiler.BeginSample("QuadTree.Render");

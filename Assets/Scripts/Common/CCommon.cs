@@ -207,4 +207,72 @@ namespace Assets.Scripts.Common
 
     #endregion
 
+
+    #region  粗糙度数据 
+    public struct stRoughnessData
+    {
+        private float[,] mRoughnessData;
+        public int mSize;
+
+        public bool IsValid()
+        {
+            return mRoughnessData != null;
+        }
+
+        public void Release()
+        {
+            mRoughnessData = null;
+            mSize = 0;
+        }
+
+
+        public void Allocate(int mapSize)
+        {
+            if (mapSize > 0)
+            {
+                mRoughnessData = new float[mapSize, mapSize];
+                mSize = mapSize;
+            }
+        }
+
+        public void SetRoughnessValue(float value, int x, int y)
+        {
+            if (IsValid() && InRange(x, y))
+            {
+                mRoughnessData[x, y] = value;
+            }
+        }
+
+        public float GetRoughnessValue(int x, int y)
+        {
+            float ret = 0;
+            if (IsValid() && InRange(x, y))
+            {
+                ret = mRoughnessData[x, y];
+            }
+            return ret;
+        }
+
+
+        private bool InRange(int x, int y)
+        {
+            return x >= 0 && x < mSize && y >= 0 && y < mSize;
+        }
+
+        public void Reset(float value = 1.0f)
+        {
+            if (IsValid())
+            {
+                for (int z = 0; z < mSize; ++z)
+                {
+                    for (int x = 0; x < mSize; ++x)
+                    {
+                        mRoughnessData[x, z] = value;
+                    }
+                }
+            }
+        }
+    }
+
+    #endregion
 }
